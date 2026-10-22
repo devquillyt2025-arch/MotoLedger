@@ -1,7 +1,7 @@
 import { AddEntryButton } from "@/components/AddEntry";
 import PageHeader from "@/components/PageHeader";
 import StatCard from "@/components/StatCard";
-import EntryActions from "@/components/EntryActions";
+import EntryRow from "@/components/EntryRow";
 import { editable, getSummary, listEntries } from "@/lib/data";
 import { rupees, shortDate } from "@/lib/format";
 
@@ -36,12 +36,12 @@ export default async function ExpensesPage() {
                   <th className="px-4 py-3">Odometer</th>
                   <th className="px-4 py-3">Notes</th>
                   <th className="px-4 py-3 text-right">Amount (₹)</th>
-                  <th className="w-20 px-3 py-3"><span className="sr-only">Actions</span></th>
+                  <th className="w-12 px-2 py-3"><span className="sr-only">Delete</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800">
                 {rows.map((e) => (
-                  <tr key={e.id} className="hover:bg-zinc-800/40">
+                  <EntryRow key={e.id} entry={editable(e)}>
                     <td className="whitespace-nowrap px-4 py-3">{shortDate(e.date)}</td>
                     <td className="px-4 py-3">{e.type === "service" ? "🔧 Service" : "🪖 Accessory"}</td>
                     <td className="px-4 py-3">
@@ -50,10 +50,7 @@ export default async function ExpensesPage() {
                     <td className="px-4 py-3 tabular-nums text-zinc-400">{e.odometer != null ? `${e.odometer.toLocaleString("en-IN")} km` : "—"}</td>
                     <td className="px-4 py-3 text-zinc-400">{e.notes ?? ""}</td>
                     <td className="px-4 py-3 text-right font-semibold tabular-nums">{rupees(e.amount)}</td>
-                    <td className="px-2 py-1.5">
-                      <EntryActions entry={editable(e)} />
-                    </td>
-                  </tr>
+              </EntryRow>
                 ))}
               </tbody>
             </table>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, X } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { EntryType } from "@/db/schema";
@@ -8,6 +8,7 @@ import type { EditableEntry, EntryMeta } from "@/lib/data";
 import { CATEGORY_SUGGESTIONS, FUEL_PRICE_PER_LITRE, TANK_LITRES } from "@/lib/constants";
 import { todayIST } from "@/lib/format";
 import { sendJson } from "@/lib/client";
+import DeleteEntryDialog from "./DeleteEntryDialog";
 
 const TYPES: { value: EntryType; label: string; icon: string }[] = [
   { value: "refuel", label: "Refuel", icon: "⛽" },
@@ -51,16 +52,21 @@ export function AddEntryProvider({ meta, children }: { meta: EntryMeta; children
   const [category, setCategory] = useState(CATEGORY_SUGGESTIONS.refuel[0]);
   const [amount, setAmount] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const amountRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (open) amountRef.current?.focus();
+  }, [open]);
+
+  useEffect(() => {
     if (!open) return;
-    amountRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    // While the delete confirm is up, Escape belongs to it, not the edit pop-up underneath.
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !deleting && setOpen(false);
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [open, deleting]);
 
   function pickType(t: EntryType) {
     setType(t);
@@ -77,6 +83,7 @@ export function AddEntryProvider({ meta, children }: { meta: EntryMeta; children
     },
     edit(entry) {
       setEditing(entry);
+      setDeleting(false);
       setAmount(String(entry.amount));
       setType(entry.type);
       setCategory(entry.category);
@@ -217,8 +224,28 @@ export function AddEntryProvider({ meta, children }: { meta: EntryMeta; children
             <button type="submit" disabled={saving} className="btn-primary mt-5 w-full py-4 text-base">
               {saving ? "Saving…" : editing ? "Save changes" : "Save"}
             </button>
+            {editing && (
+              <button
+                type="button"
+                onClick={() => setDeleting(true)}
+                className="btn mt-2 w-full text-red-400 hover:bg-red-500/10"
+              >
+                <Trash2 className="h-4 w-4" /> Delete entry
+              </button>
+            )}
           </form>
         </div>
+      )}
+
+      {open && editing && deleting && (
+        <DeleteEntryDialog
+          entry={editing}
+          onCancel={() => setDeleting(false)}
+          onDeleted={() => {
+            setDeleting(false);
+            setOpen(false);
+          }}
+        />
       )}
     </EntryModalContext.Provider>
   );

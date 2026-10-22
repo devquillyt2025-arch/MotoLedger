@@ -1,10 +1,10 @@
-import { editable, type EntryRow } from "@/lib/data";
+import { editable, type EntryRow as EntryData } from "@/lib/data";
 import { FUEL_PRICE_PER_LITRE } from "@/lib/constants";
 import { rupees, shortDate } from "@/lib/format";
-import EntryActions from "./EntryActions";
+import EntryRow from "./EntryRow";
 
 /** Refuel log, newest first. Running totals come from the server (oldest-first window sum). */
-export default function RefuelTable({ refuels }: { refuels: EntryRow[] }) {
+export default function RefuelTable({ refuels }: { refuels: EntryData[] }) {
   if (!refuels.length) {
     return (
       <div className="card p-8 text-center text-sm text-zinc-500">
@@ -26,12 +26,12 @@ export default function RefuelTable({ refuels }: { refuels: EntryRow[] }) {
               <th className="px-3 py-2.5 text-right">Running Total (₹)</th>
               <th className="px-3 py-2.5">Category</th>
               <th className="px-3 py-2.5">Notes</th>
-              <th className="w-20 px-3 py-2.5"><span className="sr-only">Actions</span></th>
+              <th className="w-12 px-2 py-2.5"><span className="sr-only">Delete</span></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
             {rows.map((r) => (
-              <tr key={r.id} className="hover:bg-zinc-800/40">
+              <EntryRow key={r.id} entry={editable(r)}>
                 <td className="px-3 py-2.5 font-semibold text-zinc-400">#{r.seq}</td>
                 <td className="whitespace-nowrap px-3 py-2.5">{shortDate(r.date)}</td>
                 <td className="px-3 py-2.5 text-right tabular-nums">
@@ -46,10 +46,7 @@ export default function RefuelTable({ refuels }: { refuels: EntryRow[] }) {
                   {r.notes ?? ""}
                   {r.odometer != null && <span className="block text-xs text-zinc-600">{r.odometer.toLocaleString("en-IN")} km</span>}
                 </td>
-                <td className="px-2 py-1.5">
-                  <EntryActions entry={editable(r)} />
-                </td>
-              </tr>
+              </EntryRow>
             ))}
           </tbody>
         </table>

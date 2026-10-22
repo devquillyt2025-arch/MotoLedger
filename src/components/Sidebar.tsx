@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, BookOpen, Fuel, Gauge, LayoutDashboard, Menu, PanelLeftClose, PanelLeftOpen, Wrench, X, type LucideIcon } from "lucide-react";
+import { BarChart3, Bell, BookOpen, Fuel, Gauge, LayoutDashboard, Menu, PanelLeftClose, PanelLeftOpen, Wrench, X, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -9,6 +9,7 @@ import { AddEntryButton } from "./AddEntry";
 
 const LINKS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/analysis", label: "Analysis", icon: BarChart3 },
   { href: "/refuels", label: "Refuel Log", icon: Fuel },
   { href: "/expenses", label: "Service & Parts", icon: Wrench },
   { href: "/reminders", label: "Reminders", icon: Bell },
