@@ -1,9 +1,10 @@
-import { asc, desc, eq, getTableColumns, isNotNull, max, sql } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, isNotNull, max, sql } from "drizzle-orm";
 import { cache } from "react";
 import { db } from "@/db";
 import { entries, entryType, odometerLogs, reminders, type EntryType, type Reminder } from "@/db/schema";
 import { DEFAULT_REMINDERS, FUEL_PRICE_PER_LITRE, WARN_DAYS, WARN_KM } from "./constants";
 import { isIsoDate, todayIST } from "./format";
+import { currentProfileId } from "./profile";
 
 // Limits that keep bad input from reaching Postgres as a 500 (numeric(10,2) / integer overflow).
 const MAX_AMOUNT = 10_000_000;
@@ -17,6 +18,7 @@ export type EntryRow = Awaited<ReturnType<typeof listEntries>>[number];
 
 /** All entries oldest-first, with a per-type sequence (#1, #2…) and per-type running total. */
 export const listEntries = cache(async () => {
+  const pid = await currentProfileId();
   const window = sql`partition by ${entries.type} order by ${entries.date}, ${entries.id}`;
   return db
     .select({
@@ -26,6 +28,7 @@ export const listEntries = cache(async () => {
       runningTotal: sql<number>`sum(${entries.amount}) over (${window})`.mapWith(Number),
     })
     .from(entries)
+    .where(eq(entries.profileId, pid))
     .orderBy(asc(entries.date), asc(entries.id));
 });
 
@@ -79,7 +82,7 @@ const asRow = <T extends { amount: string }>(r: T) => ({ ...r, amount: Number(r.
 export async function createEntry(input: EntryInput) {
   const [row] = await db
     .insert(entries)
-    .values({ ...input, amount: input.amount.toFixed(2) })
+    .values({ ...input, amount: input.amount.toFixed(2), profileId: await currentProfileId() })
     .returning();
   return asRow(row);
 }
@@ -88,22 +91,27 @@ export async function updateEntry(id: number, input: EntryInput) {
   const [row] = await db
     .update(entries)
     .set({ ...input, amount: input.amount.toFixed(2) })
-    .where(eq(entries.id, id))
+    .where(and(eq(entries.id, id), eq(entries.profileId, await currentProfileId())))
     .returning();
   return row ? asRow(row) : null;
 }
 
 export async function deleteEntry(id: number) {
-  const [row] = await db.delete(entries).where(eq(entries.id, id)).returning({ id: entries.id });
+  const [row] = await db
+    .delete(entries)
+    .where(and(eq(entries.id, id), eq(entries.profileId, await currentProfileId())))
+    .returning({ id: entries.id });
   return row ?? null;
 }
 
 /** Per-type counts (for the next #) and the current odometer — what the Add Entry modal needs. */
 export const getEntryMeta = cache(async () => {
+  const pid = await currentProfileId();
   const [counts, currentOdometer] = await Promise.all([
     db
       .select({ type: entries.type, n: sql<number>`count(*)`.mapWith(Number) })
       .from(entries)
+      .where(eq(entries.profileId, pid))
       .groupBy(entries.type),
     getCurrentOdometer(),
   ]);
@@ -119,6 +127,7 @@ export type EntryMeta = Awaited<ReturnType<typeof getEntryMeta>>;
 const refuelOnly = sql`${entries.type} = 'refuel'`;
 
 export const getSummary = cache(async () => {
+  const mine = eq(entries.profileId, await currentProfileId());
   const [[agg], [latest], refuels, currentOdometer] = await Promise.all([
     db
       .select({
@@ -131,17 +140,18 @@ export const getSummary = cache(async () => {
         highestRefill: sql<number>`max(${entries.amount}) filter (where ${refuelOnly})`.mapWith(Number),
         totalEntries: sql<number>`count(*)`.mapWith(Number),
       })
-      .from(entries),
+      .from(entries)
+      .where(mine),
     db
       .select({ amount: sql<number>`${entries.amount}`.mapWith(Number), date: entries.date })
       .from(entries)
-      .where(refuelOnly)
+      .where(and(mine, refuelOnly))
       .orderBy(sql`${entries.date} desc, ${entries.id} desc`)
       .limit(1),
     db
       .select({ odometer: entries.odometer, amount: sql<number>`${entries.amount}`.mapWith(Number) })
       .from(entries)
-      .where(refuelOnly)
+      .where(and(mine, refuelOnly))
       .orderBy(asc(entries.date), asc(entries.id)),
     getCurrentOdometer(),
   ]);
@@ -180,10 +190,11 @@ function mileage(refuels: { odometer: number | null; amount: number }[]) {
 
 /** Best known odometer: the highest reading on any entry, odometer log or reminder. */
 export const getCurrentOdometer = cache(async (): Promise<number | null> => {
+  const pid = await currentProfileId();
   const [[e], [l], [r]] = await Promise.all([
-    db.select({ v: max(entries.odometer) }).from(entries),
-    db.select({ v: max(odometerLogs.km) }).from(odometerLogs),
-    db.select({ v: max(reminders.lastDoneOdometer) }).from(reminders),
+    db.select({ v: max(entries.odometer) }).from(entries).where(eq(entries.profileId, pid)),
+    db.select({ v: max(odometerLogs.km) }).from(odometerLogs).where(eq(odometerLogs.profileId, pid)),
+    db.select({ v: max(reminders.lastDoneOdometer) }).from(reminders).where(eq(reminders.profileId, pid)),
   ]);
   const vals = [e?.v, l?.v, r?.v].filter((v): v is number => v != null);
   return vals.length ? Math.max(...vals) : null;
@@ -191,9 +202,13 @@ export const getCurrentOdometer = cache(async (): Promise<number | null> => {
 
 /** Every dated odometer reading — from entries and standalone logs — oldest first. */
 const getReadings = cache(async () => {
+  const pid = await currentProfileId();
   const [fromEntries, fromLogs] = await Promise.all([
-    db.select({ date: entries.date, km: entries.odometer }).from(entries).where(isNotNull(entries.odometer)),
-    db.select({ date: odometerLogs.date, km: odometerLogs.km }).from(odometerLogs),
+    db
+      .select({ date: entries.date, km: entries.odometer })
+      .from(entries)
+      .where(and(eq(entries.profileId, pid), isNotNull(entries.odometer))),
+    db.select({ date: odometerLogs.date, km: odometerLogs.km }).from(odometerLogs).where(eq(odometerLogs.profileId, pid)),
   ]);
   return [...fromEntries, ...fromLogs]
     .map((r) => ({ date: r.date, km: r.km as number }))
@@ -203,18 +218,29 @@ const getReadings = cache(async () => {
 // ---------- Odometer log ----------
 
 export const listOdometerLogs = cache(async (limit = 8) =>
-  db.select().from(odometerLogs).orderBy(desc(odometerLogs.date), desc(odometerLogs.id)).limit(limit),
+  db
+    .select()
+    .from(odometerLogs)
+    .where(eq(odometerLogs.profileId, await currentProfileId()))
+    .orderBy(desc(odometerLogs.date), desc(odometerLogs.id))
+    .limit(limit),
 );
 
 export type OdometerLog = Awaited<ReturnType<typeof listOdometerLogs>>[number];
 
 export async function addOdometerLog(date: string, km: number) {
-  const [row] = await db.insert(odometerLogs).values({ date, km }).returning();
+  const [row] = await db
+    .insert(odometerLogs)
+    .values({ date, km, profileId: await currentProfileId() })
+    .returning();
   return row;
 }
 
 export async function deleteOdometerLog(id: number) {
-  const [row] = await db.delete(odometerLogs).where(eq(odometerLogs.id, id)).returning({ id: odometerLogs.id });
+  const [row] = await db
+    .delete(odometerLogs)
+    .where(and(eq(odometerLogs.id, id), eq(odometerLogs.profileId, await currentProfileId())))
+    .returning({ id: odometerLogs.id });
   return row ?? null;
 }
 
@@ -260,10 +286,9 @@ export function computeReminder(
 
 /** All reminders with due status. Seeds the defaults on first use (safe under concurrent requests). */
 export const getReminders = cache(async () => {
-  let [rows, currentOdometer] = await Promise.all([
-    db.select().from(reminders).orderBy(asc(reminders.id)),
-    getCurrentOdometer(),
-  ]);
+  const pid = await currentProfileId();
+  const mine = () => db.select().from(reminders).where(eq(reminders.profileId, pid)).orderBy(asc(reminders.id));
+  let [rows, currentOdometer] = await Promise.all([mine(), getCurrentOdometer()]);
 
   if (rows.length < DEFAULT_REMINDERS.length) {
     await db
@@ -271,12 +296,13 @@ export const getReminders = cache(async () => {
       .values(
         DEFAULT_REMINDERS.map((d) => ({
           ...d,
+          profileId: pid,
           lastDoneDate: todayIST(),
           lastDoneOdometer: currentOdometer,
         })),
       )
-      .onConflictDoNothing({ target: reminders.type });
-    rows = await db.select().from(reminders).orderBy(asc(reminders.id));
+      .onConflictDoNothing({ target: [reminders.profileId, reminders.type] });
+    rows = await mine();
   }
 
   // A reminder marked done without an odometer still starts counting km once a reading exists:
@@ -298,7 +324,7 @@ export async function markReminderDone(id: number, date?: string, odometer?: num
   const [row] = await db
     .update(reminders)
     .set({ lastDoneDate: date ?? todayIST(), lastDoneOdometer: odo })
-    .where(eq(reminders.id, id))
+    .where(and(eq(reminders.id, id), eq(reminders.profileId, await currentProfileId())))
     .returning();
   return row ?? null;
 }
@@ -307,7 +333,11 @@ export async function updateReminderIntervals(
   id: number,
   patch: { intervalKm?: number | null; intervalDays?: number | null },
 ) {
-  const [row] = await db.update(reminders).set(patch).where(eq(reminders.id, id)).returning();
+  const [row] = await db
+    .update(reminders)
+    .set(patch)
+    .where(and(eq(reminders.id, id), eq(reminders.profileId, await currentProfileId())))
+    .returning();
   return row ?? null;
 }
 

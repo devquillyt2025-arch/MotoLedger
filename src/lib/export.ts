@@ -1,9 +1,9 @@
 import ExcelJS from "exceljs";
 import { analyse } from "./analysis";
-import { BIKE_NAME } from "./bike";
 import { FUEL_PRICE_PER_LITRE } from "./constants";
 import { getReminders, listEntries, listOdometerLogs } from "./data";
 import { todayIST } from "./format";
+import { getCurrentProfile } from "./profile";
 
 // Palette matches the app: zinc ink, emerald accent.
 const INK = "FF18181B";
@@ -98,10 +98,11 @@ function table(
 }
 
 export async function buildWorkbook() {
-  const [entries, { reminders, currentOdometer }, odometer] = await Promise.all([
+  const [entries, { reminders, currentOdometer }, odometer, profile] = await Promise.all([
     listEntries(),
     getReminders(),
     listOdometerLogs(10_000),
+    getCurrentProfile(),
   ]);
   const a = analyse(entries);
   const today = todayIST();
@@ -118,7 +119,7 @@ export async function buildWorkbook() {
   ws.getCell("A1").font = { size: 22, bold: true, color: { argb: ACCENT } };
   ws.getRow(1).height = 32;
   ws.mergeCells("A2:E2");
-  ws.getCell("A2").value = `${BIKE_NAME} · exported ${xlDate(today).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" })}`;
+  ws.getCell("A2").value = `${profile.name} · ${profile.bike} · exported ${xlDate(today).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" })}`;
   ws.getCell("A2").font = { size: 10, color: { argb: MUTED } };
 
   const block = (startRow: number, col: 1 | 4, heading: string, items: [string, ExcelJS.CellValue, string?][]) => {
@@ -289,5 +290,5 @@ export async function buildWorkbook() {
     odometer.map((o) => ({ date: xlDate(o.date), km: o.km })),
   );
 
-  return { buffer: await wb.xlsx.writeBuffer(), filename: `moto-ledger-${today}.xlsx` };
+  return { buffer: await wb.xlsx.writeBuffer(), filename: `moto-ledger-${profile.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "profile"}-${today}.xlsx` };
 }

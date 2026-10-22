@@ -2,8 +2,10 @@ import type { Metadata, Viewport } from "next";
 import { AddEntryProvider } from "@/components/AddEntry";
 import BottomNav from "@/components/BottomNav";
 import { OdometerProvider } from "@/components/Odometer";
+import { ProfileProvider } from "@/components/Profiles";
 import Sidebar from "@/components/Sidebar";
 import { getEntryMeta, getReminders, listOdometerLogs } from "@/lib/data";
+import { getCurrentProfile, listProfiles } from "@/lib/profile";
 import "./globals.css";
 
 export const dynamic = "force-dynamic";
@@ -25,12 +27,20 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [meta, { reminders }, odometerLogs] = await Promise.all([getEntryMeta(), getReminders(), listOdometerLogs()]);
+  const [meta, { reminders }, odometerLogs, profile, profiles] = await Promise.all([
+    getEntryMeta(),
+    getReminders(),
+    listOdometerLogs(),
+    getCurrentProfile(),
+    listProfiles(),
+  ]);
+  const pick = (p: typeof profile) => ({ id: p.id, name: p.name, bike: p.bike });
   const alerts = reminders.filter((r) => r.status !== "ok").length;
 
   return (
     <html lang="en-IN">
       <body>
+        <ProfileProvider current={pick(profile)} profiles={profiles.map(pick)}>
         <AddEntryProvider meta={meta}>
           <OdometerProvider current={meta.currentOdometer} logs={odometerLogs}>
           <div className="lg:flex">
@@ -43,6 +53,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <BottomNav alerts={alerts} odometer={meta.currentOdometer} />
           </OdometerProvider>
         </AddEntryProvider>
+        </ProfileProvider>
       </body>
     </html>
   );

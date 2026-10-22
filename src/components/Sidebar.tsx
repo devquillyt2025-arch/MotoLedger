@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { num } from "@/lib/format";
 import { AddEntryButton } from "./AddEntry";
 import { OdometerButton } from "./Odometer";
+import { ProfileButton } from "./Profiles";
 
 export const NAV_LINKS: { href: string; label: string; short: string; icon: LucideIcon }[] = [
   { href: "/", label: "Dashboard", short: "Home", icon: LayoutDashboard },
@@ -60,6 +61,7 @@ export default function Sidebar({ alerts, odometer }: { alerts: number; odometer
       </div>
 
       <div className="flex-1 space-y-4 overflow-y-auto px-3 pt-2">
+        <ProfileButton compact={collapsed} />
         {!collapsed && <AddEntryButton className="btn-primary w-full" />}
         <nav className="flex flex-col gap-1">
           {NAV_LINKS.map(({ href, label, icon: Icon }) => {

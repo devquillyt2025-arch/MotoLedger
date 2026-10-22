@@ -14,11 +14,13 @@ import {
 } from "@/lib/bike";
 import { getCurrentOdometer, listEntries } from "@/lib/data";
 import { num, rupees, shortDate } from "@/lib/format";
+import { getCurrentProfile } from "@/lib/profile";
 
 export const dynamic = "force-dynamic";
 
 export default async function BikePage() {
-  const [entries, odometer] = await Promise.all([listEntries(), getCurrentOdometer()]);
+  const [entries, odometer, profile] = await Promise.all([listEntries(), getCurrentOdometer(), getCurrentProfile()]);
+  const isDominar = /dominar/i.test(profile.bike);
   const services = entries.filter((e) => e.type === "service");
   const doneFree = new Map(
     services.flatMap((e) => {
@@ -31,7 +33,14 @@ export default async function BikePage() {
 
   return (
     <>
-      <PageHeader title="Bike Info" subtitle={`${BIKE_NAME} — specs, service plan and checks from the owner's manual.`} />
+      <PageHeader title="Bike Info" subtitle={`${profile.bike} — specs, service plan and checks from the owner's manual.`} />
+
+      {!isDominar && (
+        <div className="card mb-4 border-amber-500/30 p-4 text-sm text-amber-200">
+          The specs and service plan below are from the <span className="font-semibold">{BIKE_NAME}</span> manual. Check your{" "}
+          {profile.bike} manual for its own intervals, and adjust them on the Reminders tab.
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="min-w-0 space-y-4">

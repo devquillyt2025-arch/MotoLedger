@@ -37,6 +37,13 @@ There is no login, so anyone with the URL can add or delete entries. Turn on
 | PATCH | `/api/reminders/:id/mark-done` | `{ date?, odometer? }`; defaults to today and the latest odometer |
 | PATCH | `/api/reminders/:id` | `{ intervalKm?, intervalDays? }`; `null` clears one |
 
+## Profiles
+
+Several riders (each with one bike) can share the app. Switch, add, rename or delete profiles from the
+avatar (top-right on phones, under the logo on desktop). Every entry, reminder and odometer reading belongs
+to one profile; deleting a profile deletes its data. The active profile is remembered per device in a
+cookie. Profiles are not password-protected.
+
 ## Notes
 
 - "Current odometer" is the highest reading on any entry or reminder, so log the odometer on refuels to keep km-based reminders accurate.

@@ -1,3 +1,5 @@
+import { ProfileAvatarButton } from "./Profiles";
+
 export default function PageHeader({
   title,
   subtitle,
@@ -16,6 +18,9 @@ export default function PageHeader({
         {subtitle && <p className="mt-0.5 truncate text-xs text-zinc-400 sm:text-sm lg:mt-1 lg:text-base">{subtitle}</p>}
       </div>
       {action && <div className="hidden shrink-0 lg:block">{action}</div>}
+      <div className="shrink-0 self-center lg:hidden">
+        <ProfileAvatarButton />
+      </div>
     </div>
   );
 }
