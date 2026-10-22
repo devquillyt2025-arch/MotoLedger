@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Fuel, Gauge, LayoutDashboard, Menu, PanelLeftClose, PanelLeftOpen, Wrench, X, type LucideIcon } from "lucide-react";
+import { Bell, BookOpen, Fuel, Gauge, LayoutDashboard, Menu, PanelLeftClose, PanelLeftOpen, Wrench, X, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -12,6 +12,7 @@ const LINKS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/refuels", label: "Refuel Log", icon: Fuel },
   { href: "/expenses", label: "Service & Parts", icon: Wrench },
   { href: "/reminders", label: "Reminders", icon: Bell },
+  { href: "/bike", label: "Bike Info", icon: BookOpen },
 ];
 
 const COLLAPSE_KEY = "moto-ledger:sidebar-collapsed";

@@ -1,4 +1,5 @@
 import { editable, type EntryRow } from "@/lib/data";
+import { FUEL_PRICE_PER_LITRE } from "@/lib/constants";
 import { rupees, shortDate } from "@/lib/format";
 import EntryActions from "./EntryActions";
 
@@ -33,7 +34,10 @@ export default function RefuelTable({ refuels }: { refuels: EntryRow[] }) {
               <tr key={r.id} className="hover:bg-zinc-800/40">
                 <td className="px-3 py-2.5 font-semibold text-zinc-400">#{r.seq}</td>
                 <td className="whitespace-nowrap px-3 py-2.5">{shortDate(r.date)}</td>
-                <td className="px-3 py-2.5 text-right font-semibold tabular-nums">{rupees(r.amount)}</td>
+                <td className="px-3 py-2.5 text-right tabular-nums">
+                  <span className="font-semibold">{rupees(r.amount)}</span>
+                  <span className="block text-[11px] text-zinc-500">≈ {(r.amount / FUEL_PRICE_PER_LITRE).toFixed(1)} L</span>
+                </td>
                 <td className="px-3 py-2.5 text-right tabular-nums text-emerald-400">{rupees(r.runningTotal)}</td>
                 <td className="px-3 py-2.5">
                   <span className="rounded-md bg-zinc-800 px-2 py-0.5 text-xs text-zinc-300">{r.category}</span>

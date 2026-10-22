@@ -9,7 +9,7 @@ export default async function RemindersPage() {
 
   return (
     <>
-      <PageHeader title="Reminders" subtitle="Chain lube, servicing and battery upkeep." />
+      <PageHeader title="Reminders" subtitle="Maintenance intervals from the Dominar 400 owner's manual." />
       <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
         {reminders.map((r) => (
           <ReminderCard key={r.id} reminder={r} currentOdometer={currentOdometer} />

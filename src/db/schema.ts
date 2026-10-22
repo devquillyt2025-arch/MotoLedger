@@ -1,7 +1,7 @@
 import { date, integer, numeric, pgEnum, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 
 export const entryType = pgEnum("entry_type", ["refuel", "service", "accessory"]);
-export const reminderType = pgEnum("reminder_type", ["chain_lube", "service", "accessory_charge"]);
+export const reminderType = pgEnum("reminder_type", ["chain_lube", "service", "accessory_charge", "oil_change", "tyre_pressure", "coolant_change"]);
 
 export const entries = pgTable("entries", {
   id: serial("id").primaryKey(),

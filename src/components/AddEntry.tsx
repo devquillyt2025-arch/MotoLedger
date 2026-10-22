@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { EntryType } from "@/db/schema";
 import type { EditableEntry, EntryMeta } from "@/lib/data";
-import { CATEGORY_SUGGESTIONS } from "@/lib/constants";
+import { CATEGORY_SUGGESTIONS, FUEL_PRICE_PER_LITRE, TANK_LITRES } from "@/lib/constants";
 import { todayIST } from "@/lib/format";
 import { sendJson } from "@/lib/client";
 
@@ -49,6 +49,7 @@ export function AddEntryProvider({ meta, children }: { meta: EntryMeta; children
   const [editing, setEditing] = useState<EditableEntry | null>(null);
   const [type, setType] = useState<EntryType>("refuel");
   const [category, setCategory] = useState(CATEGORY_SUGGESTIONS.refuel[0]);
+  const [amount, setAmount] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const amountRef = useRef<HTMLInputElement>(null);
@@ -69,12 +70,14 @@ export function AddEntryProvider({ meta, children }: { meta: EntryMeta; children
   const ctx: Ctx = {
     add(t = "refuel") {
       setEditing(null);
+      setAmount("");
       pickType(t);
       setError(null);
       setOpen(true);
     },
     edit(entry) {
       setEditing(entry);
+      setAmount(String(entry.amount));
       setType(entry.type);
       setCategory(entry.category);
       setError(null);
@@ -97,6 +100,7 @@ export function AddEntryProvider({ meta, children }: { meta: EntryMeta; children
     router.refresh();
   }
 
+  const litres = Number(amount) / FUEL_PRICE_PER_LITRE || 0;
   const label = TYPES.find((t) => t.value === type)!.label;
   const seq = editing && editing.type === type ? editing.seq : meta.nextSeq[type];
 
@@ -149,10 +153,17 @@ export function AddEntryProvider({ meta, children }: { meta: EntryMeta; children
                   max="9999999"
                   required
                   defaultValue={editing?.amount}
+                  onChange={(e) => setAmount(e.target.value)}
                   className="input mt-1 text-2xl font-bold"
                   placeholder="0"
                 />
               </label>
+              {type === "refuel" && litres > 0 && (
+                <p className={`col-span-2 -mt-1 text-xs ${litres > TANK_LITRES ? "text-amber-300" : "text-zinc-400"}`}>
+                  ≈ {litres.toFixed(1)} L at ₹{FUEL_PRICE_PER_LITRE}/L
+                  {litres > TANK_LITRES && ` — more than the ${TANK_LITRES} L tank, check the amount`}
+                </p>
+              )}
               <label className="block">
                 <span className="label">Date</span>
                 <input name="date" type="date" required max="2100-12-31" defaultValue={editing?.date ?? todayIST()} className="input mt-1" />
