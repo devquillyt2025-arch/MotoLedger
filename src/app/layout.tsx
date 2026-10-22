@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { AddEntryProvider } from "@/components/AddEntry";
 import BottomNav from "@/components/BottomNav";
+import { OdometerProvider } from "@/components/Odometer";
 import Sidebar from "@/components/Sidebar";
-import { getEntryMeta, getReminders } from "@/lib/data";
+import { getEntryMeta, getReminders, listOdometerLogs } from "@/lib/data";
 import "./globals.css";
 
 export const dynamic = "force-dynamic";
@@ -24,13 +25,14 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [meta, { reminders }] = await Promise.all([getEntryMeta(), getReminders()]);
+  const [meta, { reminders }, odometerLogs] = await Promise.all([getEntryMeta(), getReminders(), listOdometerLogs()]);
   const alerts = reminders.filter((r) => r.status !== "ok").length;
 
   return (
     <html lang="en-IN">
       <body>
         <AddEntryProvider meta={meta}>
+          <OdometerProvider current={meta.currentOdometer} logs={odometerLogs}>
           <div className="lg:flex">
             <Sidebar alerts={alerts} odometer={meta.currentOdometer} />
             {/* Phones: leave room for the bottom tab bar + home indicator. */}
@@ -39,6 +41,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </main>
           </div>
           <BottomNav alerts={alerts} odometer={meta.currentOdometer} />
+          </OdometerProvider>
         </AddEntryProvider>
       </body>
     </html>

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { num } from "@/lib/format";
 import { AddEntryButton } from "./AddEntry";
+import { OdometerButton } from "./Odometer";
 
 export const NAV_LINKS: { href: string; label: string; short: string; icon: LucideIcon }[] = [
   { href: "/", label: "Dashboard", short: "Home", icon: LayoutDashboard },
@@ -90,14 +91,21 @@ export default function Sidebar({ alerts, odometer }: { alerts: number; odometer
         </nav>
       </div>
 
-      <div className={`flex items-center gap-3 border-t border-zinc-800 px-5 py-4 text-sm ${collapsed ? "justify-center px-0" : ""}`}>
-        <Gauge className="h-5 w-5 shrink-0 text-zinc-500" strokeWidth={1.75} />
-        {!collapsed && (
-          <div>
-            <p className="label">Odometer</p>
-            <p className="font-semibold tabular-nums">{odometer != null ? `${num(odometer)} km` : "not logged"}</p>
-          </div>
-        )}
+      <div className="border-t border-zinc-800 p-3">
+        <OdometerButton
+          className={`flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left text-sm transition hover:bg-zinc-900 ${
+            collapsed ? "justify-center" : ""
+          }`}
+        >
+          <Gauge className="h-5 w-5 shrink-0 text-zinc-500" strokeWidth={1.75} />
+          {!collapsed && (
+            <span className="min-w-0 flex-1">
+              <span className="label block">Odometer</span>
+              <span className="block font-semibold tabular-nums">{odometer != null ? `${num(odometer)} km` : "Not logged"}</span>
+            </span>
+          )}
+          {!collapsed && <span className="text-xs font-semibold text-emerald-400">Update</span>}
+        </OdometerButton>
       </div>
     </aside>
   );

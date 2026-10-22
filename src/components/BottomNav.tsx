@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { num } from "@/lib/format";
 import { useEntryModal } from "./AddEntry";
 import { Modal } from "./Modal";
+import { useOdometer } from "./Odometer";
 import { isActive, NAV_LINKS } from "./Sidebar";
 
 const TABS = [
@@ -20,6 +21,7 @@ const MORE = NAV_LINKS.filter((l) => !TABS.some((t) => t.href === l.href));
 export default function BottomNav({ alerts, odometer }: { alerts: number; odometer: number | null }) {
   const path = usePathname();
   const { add } = useEntryModal();
+  const openOdometer = useOdometer();
   const [more, setMore] = useState(false);
   const moreActive = MORE.some((l) => isActive(path, l.href));
 
@@ -93,11 +95,19 @@ export default function BottomNav({ alerts, odometer }: { alerts: number; odomet
               </Link>
             ))}
           </div>
-          <div className="mt-4 flex items-center gap-3 rounded-2xl border border-zinc-800 px-4 py-3 text-sm">
+          <button
+            type="button"
+            onClick={() => {
+              setMore(false);
+              openOdometer();
+            }}
+            className="mt-4 flex w-full items-center gap-3 rounded-2xl border border-zinc-800 px-4 py-3 text-left text-sm active:bg-zinc-800/60"
+          >
             <Gauge className="h-5 w-5 text-zinc-500" strokeWidth={1.75} />
             <span className="text-zinc-400">Odometer</span>
-            <span className="ml-auto font-semibold tabular-nums">{odometer != null ? `${num(odometer)} km` : "not logged"}</span>
-          </div>
+            <span className="ml-auto font-semibold tabular-nums">{odometer != null ? `${num(odometer)} km` : "Not logged"}</span>
+            <span className="text-xs font-semibold text-emerald-400">Update</span>
+          </button>
         </Modal>
       )}
     </>

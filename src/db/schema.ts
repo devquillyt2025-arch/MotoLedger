@@ -24,6 +24,14 @@ export const reminders = pgTable("reminders", {
   lastDoneOdometer: integer("last_done_odometer"),
 });
 
+/** Standalone odometer readings (no expense attached) — "Update odometer". */
+export const odometerLogs = pgTable("odometer_logs", {
+  id: serial("id").primaryKey(),
+  date: date("date", { mode: "string" }).notNull(),
+  km: integer("km").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export type Entry = typeof entries.$inferSelect;
 export type EntryType = (typeof entryType.enumValues)[number];
 export type Reminder = typeof reminders.$inferSelect;

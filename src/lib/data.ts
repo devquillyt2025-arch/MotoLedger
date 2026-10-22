@@ -1,7 +1,7 @@
-import { asc, eq, getTableColumns, max, sql } from "drizzle-orm";
+import { asc, desc, eq, getTableColumns, isNotNull, max, sql } from "drizzle-orm";
 import { cache } from "react";
 import { db } from "@/db";
-import { entries, entryType, reminders, type EntryType, type Reminder } from "@/db/schema";
+import { entries, entryType, odometerLogs, reminders, type EntryType, type Reminder } from "@/db/schema";
 import { DEFAULT_REMINDERS, FUEL_PRICE_PER_LITRE, WARN_DAYS, WARN_KM } from "./constants";
 import { isIsoDate, todayIST } from "./format";
 
@@ -178,15 +178,45 @@ function mileage(refuels: { odometer: number | null; amount: number }[]) {
   return distance > 0 && litres > 0 ? distance / litres : null;
 }
 
-/** Best known odometer: the highest reading on any entry or reminder. */
+/** Best known odometer: the highest reading on any entry, odometer log or reminder. */
 export const getCurrentOdometer = cache(async (): Promise<number | null> => {
-  const [[e], [r]] = await Promise.all([
+  const [[e], [l], [r]] = await Promise.all([
     db.select({ v: max(entries.odometer) }).from(entries),
+    db.select({ v: max(odometerLogs.km) }).from(odometerLogs),
     db.select({ v: max(reminders.lastDoneOdometer) }).from(reminders),
   ]);
-  const vals = [e?.v, r?.v].filter((v): v is number => v != null);
+  const vals = [e?.v, l?.v, r?.v].filter((v): v is number => v != null);
   return vals.length ? Math.max(...vals) : null;
 });
+
+/** Every dated odometer reading — from entries and standalone logs — oldest first. */
+const getReadings = cache(async () => {
+  const [fromEntries, fromLogs] = await Promise.all([
+    db.select({ date: entries.date, km: entries.odometer }).from(entries).where(isNotNull(entries.odometer)),
+    db.select({ date: odometerLogs.date, km: odometerLogs.km }).from(odometerLogs),
+  ]);
+  return [...fromEntries, ...fromLogs]
+    .map((r) => ({ date: r.date, km: r.km as number }))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.km - b.km);
+});
+
+// ---------- Odometer log ----------
+
+export const listOdometerLogs = cache(async (limit = 8) =>
+  db.select().from(odometerLogs).orderBy(desc(odometerLogs.date), desc(odometerLogs.id)).limit(limit),
+);
+
+export type OdometerLog = Awaited<ReturnType<typeof listOdometerLogs>>[number];
+
+export async function addOdometerLog(date: string, km: number) {
+  const [row] = await db.insert(odometerLogs).values({ date, km }).returning();
+  return row;
+}
+
+export async function deleteOdometerLog(id: number) {
+  const [row] = await db.delete(odometerLogs).where(eq(odometerLogs.id, id)).returning({ id: odometerLogs.id });
+  return row ?? null;
+}
 
 // ---------- Reminders ----------
 
@@ -198,12 +228,19 @@ export type ReminderView = Reminder & {
   daysLeft: number | null;
   kmLeft: number | null;
   status: ReminderStatus;
+  /** km baseline is the first reading after "last done", not a reading taken at the time. */
+  odometerEstimated: boolean;
 };
 
 const DAY_MS = 86_400_000;
 const toUTC = (iso: string) => Date.parse(`${iso}T00:00:00Z`);
 
-export function computeReminder(r: Reminder, currentOdo: number | null, today = todayIST()): ReminderView {
+export function computeReminder(
+  r: Reminder,
+  currentOdo: number | null,
+  today = todayIST(),
+  odometerEstimated = false,
+): ReminderView {
   const nextDueDate =
     r.intervalDays != null
       ? new Date(toUTC(r.lastDoneDate) + r.intervalDays * DAY_MS).toISOString().slice(0, 10)
@@ -218,7 +255,7 @@ export function computeReminder(r: Reminder, currentOdo: number | null, today = 
   if ((daysLeft != null && daysLeft < 0) || (kmLeft != null && kmLeft < 0)) status = "overdue";
   else if ((daysLeft != null && daysLeft <= WARN_DAYS) || (kmLeft != null && kmLeft <= WARN_KM)) status = "upcoming";
 
-  return { ...r, nextDueDate, nextDueOdometer, daysLeft, kmLeft, status };
+  return { ...r, nextDueDate, nextDueOdometer, daysLeft, kmLeft, status, odometerEstimated };
 }
 
 /** All reminders with due status. Seeds the defaults on first use (safe under concurrent requests). */
@@ -242,7 +279,18 @@ export const getReminders = cache(async () => {
     rows = await db.select().from(reminders).orderBy(asc(reminders.id));
   }
 
-  return { currentOdometer, reminders: rows.map((r) => computeReminder(r, currentOdometer)) };
+  // A reminder marked done without an odometer still starts counting km once a reading exists:
+  // use the first reading on/after its last-done date as the baseline.
+  const readings = rows.some((r) => r.lastDoneOdometer == null) ? await getReadings() : [];
+  const views = rows.map((r) => {
+    if (r.lastDoneOdometer != null || r.intervalKm == null) return computeReminder(r, currentOdometer);
+    const base = readings.find((x) => x.date >= r.lastDoneDate);
+    return base
+      ? computeReminder({ ...r, lastDoneOdometer: base.km }, currentOdometer, undefined, true)
+      : computeReminder(r, currentOdometer);
+  });
+
+  return { currentOdometer, reminders: views };
 });
 
 export async function markReminderDone(id: number, date?: string, odometer?: number | null) {

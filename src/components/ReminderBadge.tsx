@@ -19,8 +19,6 @@ export function remainingParts(r: ReminderView) {
   }
   if (r.kmLeft != null) {
     parts.push(r.kmLeft < 0 ? `${num(-r.kmLeft)} km overdue` : `${num(r.kmLeft)} km left`);
-  } else if (r.intervalKm != null) {
-    parts.push("log odometer for km");
   }
   return parts;
 }

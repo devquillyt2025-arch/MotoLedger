@@ -7,6 +7,7 @@ import type { ReminderView } from "@/lib/data";
 import { REMINDER_HINTS } from "@/lib/constants";
 import { num, shortDate, todayIST } from "@/lib/format";
 import { ConfirmDialog, Modal } from "./Modal";
+import { OdometerButton } from "./Odometer";
 import { remainingParts, STATUS_STYLES } from "./ReminderBadge";
 
 type Intervals = { intervalKm: string; intervalDays: string };
@@ -88,7 +89,7 @@ export default function ReminderCard({
           <p className="mt-0.5 text-xs text-zinc-500">Every {every || "— (no interval set)"}</p>
           <p className="mt-1.5 text-xs text-zinc-400">{REMINDER_HINTS[r.type]}</p>
         </div>
-        <p className={`text-right text-sm font-semibold ${s.text}`}>
+        <p className={`shrink-0 whitespace-nowrap text-right text-sm font-semibold ${s.text}`}>
           {remainingParts(r).map((p) => (
             <span key={p} className="block">
               {p}
@@ -102,7 +103,12 @@ export default function ReminderCard({
           <dt className="label">Last done</dt>
           <dd>
             {shortDate(r.lastDoneDate)}
-            {r.lastDoneOdometer != null && <span className="block text-xs text-zinc-500">{num(r.lastDoneOdometer)} km</span>}
+            {r.lastDoneOdometer != null && (
+              <span className="block text-xs text-zinc-500" title={r.odometerEstimated ? "First odometer reading after this date" : undefined}>
+                {r.odometerEstimated ? "≈ " : ""}
+                {num(r.lastDoneOdometer)} km
+              </span>
+            )}
           </dd>
         </div>
         <div>
@@ -113,6 +119,10 @@ export default function ReminderCard({
           </dd>
         </div>
       </dl>
+
+      {r.intervalKm != null && r.kmLeft == null && (
+        <OdometerButton className="btn mt-3 w-full border border-dashed border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10" />
+      )}
 
       <div className="mt-4 grid grid-cols-2 gap-2">
         <button className="btn-primary" onClick={() => open("done")}>

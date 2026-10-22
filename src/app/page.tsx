@@ -1,5 +1,7 @@
+import { Gauge } from "lucide-react";
 import Link from "next/link";
 import { AddEntryButton } from "@/components/AddEntry";
+import { OdometerButton } from "@/components/Odometer";
 import PageHeader from "@/components/PageHeader";
 import RefuelTable from "@/components/RefuelTable";
 import ReminderBanner from "@/components/ReminderBanner";
@@ -34,6 +36,21 @@ export default async function Dashboard() {
   return (
     <>
       <PageHeader title="Dashboard" subtitle="Fuel, service and upkeep at a glance." action={<AddEntryButton />} />
+
+      <OdometerButton className="card mb-3 flex w-full items-center gap-3 p-4 text-left transition hover:border-zinc-700 active:bg-zinc-800/60 lg:mb-4">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-500/15 text-emerald-400">
+          <Gauge className="h-6 w-6" strokeWidth={1.75} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="label block">Odometer</span>
+          <span className="block text-xl font-bold tabular-nums">
+            {summary.currentOdometer != null ? `${num(summary.currentOdometer)} km` : "Not logged yet"}
+          </span>
+        </span>
+        <span className="rounded-xl bg-emerald-500 px-3 py-2 text-sm font-semibold text-zinc-950">
+          {summary.currentOdometer != null ? "Update" : "Log now"}
+        </span>
+      </OdometerButton>
 
       <section className="grid grid-cols-2 gap-3 lg:gap-4 xl:grid-cols-4">
         <StatCard label="Total Fuel Spend" value={rupees(summary.totalFuelSpend)} accent="text-emerald-400" />
