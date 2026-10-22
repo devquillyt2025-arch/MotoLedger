@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { AddEntryFab, AddEntryProvider } from "@/components/AddEntry";
+import { AddEntryProvider } from "@/components/AddEntry";
+import BottomNav from "@/components/BottomNav";
 import Sidebar from "@/components/Sidebar";
 import { getEntryMeta, getReminders } from "@/lib/data";
 import "./globals.css";
@@ -9,11 +10,16 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Moto Ledger",
   description: "Personal bike fuel, service and maintenance tracker",
+  applicationName: "Moto Ledger",
+  // Installed to the home screen it opens full-screen like a native app.
+  appleWebApp: { capable: true, title: "Moto Ledger", statusBarStyle: "black-translucent" },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover", // draw under the notch; safe-area insets pad the bars
   themeColor: "#09090b",
 };
 
@@ -27,11 +33,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <AddEntryProvider meta={meta}>
           <div className="lg:flex">
             <Sidebar alerts={alerts} odometer={meta.currentOdometer} />
-            <main className="min-w-0 flex-1 px-4 pb-28 lg:px-10 lg:pb-10">
+            {/* Phones: leave room for the bottom tab bar + home indicator. */}
+            <main className="min-w-0 flex-1 px-4 pb-[calc(env(safe-area-inset-bottom)+6rem)] lg:px-10 lg:pb-10">
               <div className="mx-auto max-w-[1600px]">{children}</div>
             </main>
           </div>
-          <AddEntryFab />
+          <BottomNav alerts={alerts} odometer={meta.currentOdometer} />
         </AddEntryProvider>
       </body>
     </html>

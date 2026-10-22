@@ -1,6 +1,7 @@
 import { AddEntryButton } from "@/components/AddEntry";
 import PageHeader from "@/components/PageHeader";
 import StatCard from "@/components/StatCard";
+import EntryListItem from "@/components/EntryListItem";
 import EntryRow from "@/components/EntryRow";
 import { editable, getSummary, listEntries } from "@/lib/data";
 import { rupees, shortDate } from "@/lib/format";
@@ -25,7 +26,22 @@ export default async function ExpensesPage() {
       {rows.length === 0 ? (
         <div className="card p-8 text-center text-sm text-zinc-500">No service or accessory entries yet.</div>
       ) : (
-        <div className="card overflow-hidden">
+        <>
+        <ul className="card divide-y divide-zinc-800 overflow-hidden md:hidden">
+          {rows.map((e) => (
+            <EntryListItem
+              key={e.id}
+              entry={editable(e)}
+              lead={e.type === "service" ? "🔧" : "🪖"}
+              title={e.category}
+              subtitle={[shortDate(e.date), e.odometer != null ? `${e.odometer.toLocaleString("en-IN")} km` : null, e.notes]
+                .filter(Boolean)
+                .join(" · ")}
+              amount={rupees(e.amount)}
+            />
+          ))}
+        </ul>
+        <div className="card hidden overflow-hidden md:block">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[680px] text-sm">
               <thead className="bg-zinc-900 text-left">
@@ -50,12 +66,13 @@ export default async function ExpensesPage() {
                     <td className="px-4 py-3 tabular-nums text-zinc-400">{e.odometer != null ? `${e.odometer.toLocaleString("en-IN")} km` : "—"}</td>
                     <td className="px-4 py-3 text-zinc-400">{e.notes ?? ""}</td>
                     <td className="px-4 py-3 text-right font-semibold tabular-nums">{rupees(e.amount)}</td>
-              </EntryRow>
+                  </EntryRow>
                 ))}
               </tbody>
             </table>
           </div>
         </div>
+        </>
       )}
     </>
   );

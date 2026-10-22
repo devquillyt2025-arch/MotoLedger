@@ -30,20 +30,6 @@ export function AddEntryButton({ type, className = "btn-primary" }: { type?: Ent
   );
 }
 
-/** Floating button for phones; desktop uses the sidebar / page-header buttons. */
-export function AddEntryFab() {
-  const { add } = useEntryModal();
-  return (
-    <button
-      onClick={() => add()}
-      aria-label="Add entry"
-      className="btn-primary fixed bottom-5 right-4 z-30 rounded-full px-6 py-4 text-base shadow-lg shadow-emerald-500/20 lg:hidden"
-    >
-      <Plus className="h-5 w-5" /> Add
-    </button>
-  );
-}
-
 export function AddEntryProvider({ meta, children }: { meta: EntryMeta; children: React.ReactNode }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -121,7 +107,7 @@ export function AddEntryProvider({ meta, children }: { meta: EntryMeta; children
             key={editing?.id ?? "new"}
             onSubmit={onSubmit}
             onClick={(e) => e.stopPropagation()}
-            className="card max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-b-none border-zinc-700 bg-zinc-900 p-5 sm:rounded-2xl"
+            className="card max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-b-none border-zinc-700 bg-zinc-900 p-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] sm:rounded-2xl sm:pb-5"
           >
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-bold">

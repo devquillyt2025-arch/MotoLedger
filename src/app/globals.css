@@ -6,8 +6,21 @@
   color-scheme: dark;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   @apply bg-zinc-950 text-zinc-100 antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none; /* no rubber-band flashing the page edge, like a native app */
+}
+
+/* App chrome shouldn't select like text on long-press. */
+nav,
+button {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 @layer components {
