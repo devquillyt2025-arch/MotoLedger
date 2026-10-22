@@ -4,9 +4,10 @@ import { Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { EntryType } from "@/db/schema";
-import type { EntryMeta } from "@/lib/data";
+import type { EditableEntry, EntryMeta } from "@/lib/data";
 import { CATEGORY_SUGGESTIONS } from "@/lib/constants";
 import { todayIST } from "@/lib/format";
+import { sendJson } from "@/lib/client";
 
 const TYPES: { value: EntryType; label: string; icon: string }[] = [
   { value: "refuel", label: "Refuel", icon: "⛽" },
@@ -14,15 +15,15 @@ const TYPES: { value: EntryType; label: string; icon: string }[] = [
   { value: "accessory", label: "Accessory", icon: "🪖" },
 ];
 
-const AddEntryContext = createContext<(type?: EntryType) => void>(() => {});
+type Ctx = { add: (type?: EntryType) => void; edit: (entry: EditableEntry) => void };
+const EntryModalContext = createContext<Ctx>({ add: () => {}, edit: () => {} });
 
-/** Opens the shared Add Entry modal, optionally preset to a type. */
-export const useAddEntry = () => useContext(AddEntryContext);
+export const useEntryModal = () => useContext(EntryModalContext);
 
 export function AddEntryButton({ type, className = "btn-primary" }: { type?: EntryType; className?: string }) {
-  const open = useAddEntry();
+  const { add } = useEntryModal();
   return (
-    <button onClick={() => open(type)} className={className}>
+    <button onClick={() => add(type)} className={className}>
       <Plus className="h-4 w-4" /> Add Entry
     </button>
   );
@@ -30,10 +31,10 @@ export function AddEntryButton({ type, className = "btn-primary" }: { type?: Ent
 
 /** Floating button for phones; desktop uses the sidebar / page-header buttons. */
 export function AddEntryFab() {
-  const open = useAddEntry();
+  const { add } = useEntryModal();
   return (
     <button
-      onClick={() => open()}
+      onClick={() => add()}
       aria-label="Add entry"
       className="btn-primary fixed bottom-5 right-4 z-30 rounded-full px-6 py-4 text-base shadow-lg shadow-emerald-500/20 lg:hidden"
     >
@@ -45,6 +46,7 @@ export function AddEntryFab() {
 export function AddEntryProvider({ meta, children }: { meta: EntryMeta; children: React.ReactNode }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<EditableEntry | null>(null);
   const [type, setType] = useState<EntryType>("refuel");
   const [category, setCategory] = useState(CATEGORY_SUGGESTIONS.refuel[0]);
   const [saving, setSaving] = useState(false);
@@ -64,46 +66,55 @@ export function AddEntryProvider({ meta, children }: { meta: EntryMeta; children
     setCategory(CATEGORY_SUGGESTIONS[t][0]);
   }
 
-  function openModal(t: EntryType = "refuel") {
-    pickType(t);
-    setError(null);
-    setOpen(true);
-  }
+  const ctx: Ctx = {
+    add(t = "refuel") {
+      setEditing(null);
+      pickType(t);
+      setError(null);
+      setOpen(true);
+    },
+    edit(entry) {
+      setEditing(entry);
+      setType(entry.type);
+      setCategory(entry.category);
+      setError(null);
+      setOpen(true);
+    },
+  };
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (saving) return;
     setSaving(true);
     setError(null);
-    const form = new FormData(e.currentTarget);
-    const res = await fetch("/api/entries", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...Object.fromEntries(form), type, category }),
-    });
+    const body = { ...Object.fromEntries(new FormData(e.currentTarget)), type, category };
+    const err = editing
+      ? await sendJson(`/api/entries/${editing.id}`, "PATCH", body)
+      : await sendJson("/api/entries", "POST", body);
     setSaving(false);
-    if (!res.ok) {
-      setError((await res.json().catch(() => null))?.error ?? "Could not save");
-      return;
-    }
+    if (err) return setError(err);
     setOpen(false);
     router.refresh();
   }
 
+  const label = TYPES.find((t) => t.value === type)!.label;
+  const seq = editing && editing.type === type ? editing.seq : meta.nextSeq[type];
+
   return (
-    <AddEntryContext.Provider value={openModal}>
+    <EntryModalContext.Provider value={ctx}>
       {children}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 sm:items-center" onClick={() => setOpen(false)}>
           <form
+            key={editing?.id ?? "new"}
             onSubmit={onSubmit}
             onClick={(e) => e.stopPropagation()}
             className="card max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-b-none border-zinc-700 bg-zinc-900 p-5 sm:rounded-2xl"
           >
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-bold">
-                New {TYPES.find((t) => t.value === type)!.label}{" "}
-                <span className="text-zinc-500">#{meta.nextSeq[type]}</span>
+                {editing ? "Edit" : "New"} {label} {!editing || editing.type === type ? <span className="text-zinc-500">#{seq}</span> : null}
               </h2>
               <button type="button" onClick={() => setOpen(false)} className="text-zinc-500 hover:text-zinc-300" aria-label="Close">
                 <X className="h-5 w-5" />
@@ -128,11 +139,23 @@ export function AddEntryProvider({ meta, children }: { meta: EntryMeta; children
             <div className="grid grid-cols-2 gap-3">
               <label className="col-span-2 block">
                 <span className="label">Amount (₹)</span>
-                <input ref={amountRef} name="amount" type="number" inputMode="decimal" step="0.01" min="1" required className="input mt-1 text-2xl font-bold" placeholder="0" />
+                <input
+                  ref={amountRef}
+                  name="amount"
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  min="1"
+                  max="9999999"
+                  required
+                  defaultValue={editing?.amount}
+                  className="input mt-1 text-2xl font-bold"
+                  placeholder="0"
+                />
               </label>
               <label className="block">
                 <span className="label">Date</span>
-                <input name="date" type="date" required defaultValue={todayIST()} className="input mt-1" />
+                <input name="date" type="date" required max="2100-12-31" defaultValue={editing?.date ?? todayIST()} className="input mt-1" />
               </label>
               <label className="block">
                 <span className="label">Odometer (km)</span>
@@ -142,6 +165,7 @@ export function AddEntryProvider({ meta, children }: { meta: EntryMeta; children
                   inputMode="numeric"
                   min="0"
                   step="1"
+                  defaultValue={editing?.odometer ?? undefined}
                   className="input mt-1"
                   placeholder={meta.currentOdometer != null ? `> ${meta.currentOdometer}` : "optional"}
                 />
@@ -162,22 +186,29 @@ export function AddEntryProvider({ meta, children }: { meta: EntryMeta; children
                     </button>
                   ))}
                 </div>
-                <input value={category} onChange={(e) => setCategory(e.target.value)} required className="input mt-2" placeholder="Or type a category" />
+                <input
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  required
+                  maxLength={60}
+                  className="input mt-2"
+                  placeholder="Or type a category"
+                />
               </div>
               <label className="col-span-2 block">
                 <span className="label">Notes</span>
-                <input name="notes" className="input mt-1" placeholder="optional" />
+                <input name="notes" maxLength={500} defaultValue={editing?.notes ?? ""} className="input mt-1" placeholder="optional" />
               </label>
             </div>
 
             {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
 
             <button type="submit" disabled={saving} className="btn-primary mt-5 w-full py-4 text-base">
-              {saving ? "Saving…" : "Save"}
+              {saving ? "Saving…" : editing ? "Save changes" : "Save"}
             </button>
           </form>
         </div>
       )}
-    </AddEntryContext.Provider>
+    </EntryModalContext.Provider>
   );
 }

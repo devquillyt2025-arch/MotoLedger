@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { sendJson } from "@/lib/client";
 import type { ReminderView } from "@/lib/data";
 import { num, shortDate, todayIST } from "@/lib/format";
 import { remainingParts, STATUS_STYLES } from "./ReminderBadge";
@@ -22,16 +23,9 @@ export default function ReminderCard({
   async function send(url: string, body: object) {
     setBusy(true);
     setError(null);
-    const res = await fetch(url, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    const err = await sendJson(url, "PATCH", body);
     setBusy(false);
-    if (!res.ok) {
-      setError((await res.json().catch(() => null))?.error ?? "Failed");
-      return;
-    }
+    if (err) return setError(err);
     setMode("view");
     router.refresh();
   }

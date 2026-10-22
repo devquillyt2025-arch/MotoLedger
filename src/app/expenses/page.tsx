@@ -1,7 +1,8 @@
 import { AddEntryButton } from "@/components/AddEntry";
 import PageHeader from "@/components/PageHeader";
 import StatCard from "@/components/StatCard";
-import { getSummary, listEntries } from "@/lib/data";
+import EntryActions from "@/components/EntryActions";
+import { editable, getSummary, listEntries } from "@/lib/data";
 import { rupees, shortDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +27,7 @@ export default async function ExpensesPage() {
       ) : (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] text-sm">
+            <table className="w-full min-w-[680px] text-sm">
               <thead className="bg-zinc-900 text-left">
                 <tr className="label">
                   <th className="px-4 py-3">Date</th>
@@ -35,6 +36,7 @@ export default async function ExpensesPage() {
                   <th className="px-4 py-3">Odometer</th>
                   <th className="px-4 py-3">Notes</th>
                   <th className="px-4 py-3 text-right">Amount (₹)</th>
+                  <th className="w-20 px-3 py-3"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800">
@@ -48,6 +50,9 @@ export default async function ExpensesPage() {
                     <td className="px-4 py-3 tabular-nums text-zinc-400">{e.odometer != null ? `${e.odometer.toLocaleString("en-IN")} km` : "—"}</td>
                     <td className="px-4 py-3 text-zinc-400">{e.notes ?? ""}</td>
                     <td className="px-4 py-3 text-right font-semibold tabular-nums">{rupees(e.amount)}</td>
+                    <td className="px-2 py-1.5">
+                      <EntryActions entry={editable(e)} />
+                    </td>
                   </tr>
                 ))}
               </tbody>

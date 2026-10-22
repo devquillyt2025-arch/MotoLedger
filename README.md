@@ -14,6 +14,16 @@ npm run dev                     # http://localhost:3000
 The three default reminders (Chain Lube 500 km / 15 days, Full Service 3000 km / 90 days,
 Battery Charge 30 days) are seeded on first load, using today's date and the latest odometer reading as "last done".
 
+## Deploy to Vercel
+
+1. Import the GitHub repo in Vercel (framework preset: Next.js, no build settings needed).
+2. Add `DATABASE_URL` under **Settings → Environment Variables** (or add the Neon integration, which sets it).
+   Use the **pooled** connection string (host contains `-pooler`).
+3. Deploy. Tables must already exist: run `npm run db:push` locally against the same database first.
+
+There is no login, so anyone with the URL can add or delete entries. Turn on
+**Settings → Deployment Protection** (Vercel Authentication) if that matters.
+
 ## API
 
 | Method | Route | Notes |
@@ -22,6 +32,8 @@ Battery Charge 30 days) are seeded on first load, using today's date and the lat
 | POST | `/api/entries` | `{ type, date, amount, odometer?, category, notes? }` |
 | GET | `/api/summary` | Dashboard card stats |
 | GET | `/api/reminders` | `{ currentOdometer, reminders[] }` with `nextDueDate`, `daysLeft`, `kmLeft`, `status` |
+| PATCH | `/api/entries/:id` | Same body as POST; replaces the entry |
+| DELETE | `/api/entries/:id` | |
 | PATCH | `/api/reminders/:id/mark-done` | `{ date?, odometer? }`; defaults to today and the latest odometer |
 | PATCH | `/api/reminders/:id` | `{ intervalKm?, intervalDays? }`; `null` clears one |
 
