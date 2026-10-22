@@ -54,7 +54,7 @@ export default async function Dashboard() {
 
       <section className="grid grid-cols-2 gap-3 lg:gap-4 xl:grid-cols-4">
         <StatCard label="Total Fuel Spend" value={rupees(summary.totalFuelSpend)} accent="text-emerald-400" />
-        <StatCard label="Total Bike Spend" value={rupees(summary.totalBikeSpend)} sub="fuel + service" />
+        <StatCard label="Total Bike Spend" value={rupees(summary.totalBikeSpend)} sub="fuel + service + accessories" />
         <StatCard label="Total Refuels" value={num(summary.totalRefuels)} />
         <StatCard label="1st Service Cost" value={summary.firstServiceCost ? rupees(summary.firstServiceCost) : dash} />
       </section>

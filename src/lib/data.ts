@@ -158,7 +158,8 @@ export const getSummary = cache(async () => {
 
   return {
     totalFuelSpend: agg.fuel,
-    totalBikeSpend: agg.fuel + agg.service,
+    totalBikeSpend: agg.fuel + agg.service + agg.accessory,
+    serviceSpend: agg.service,
     accessorySpend: agg.accessory,
     totalRefuels: agg.refuels,
     firstServiceCost: agg.firstService,

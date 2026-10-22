@@ -11,13 +11,12 @@ export const dynamic = "force-dynamic";
 export default async function ExpensesPage() {
   const [entries, summary] = await Promise.all([listEntries(), getSummary()]);
   const rows = entries.filter((e) => e.type !== "refuel").reverse();
-  const serviceSpend = summary.totalBikeSpend - summary.totalFuelSpend;
 
   return (
     <>
       <PageHeader title="Service & Parts" subtitle="Servicing, repairs and accessories." action={<AddEntryButton type="service" />} />
       <section className="mb-4 grid grid-cols-2 gap-3 lg:gap-4 xl:grid-cols-4">
-        <StatCard label="Service Spend" value={rupees(serviceSpend)} accent="text-emerald-400" />
+        <StatCard label="Service Spend" value={rupees(summary.serviceSpend)} accent="text-emerald-400" />
         <StatCard label="Accessories" value={rupees(summary.accessorySpend)} />
         <StatCard label="1st Service Cost" value={summary.firstServiceCost ? rupees(summary.firstServiceCost) : "—"} />
         <StatCard label="Entries" value={String(rows.length)} />
