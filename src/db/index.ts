@@ -10,7 +10,8 @@ function getDb(): DB {
     if (!process.env.DATABASE_URL) {
       throw new Error("DATABASE_URL is not set — copy .env.example to .env.local and fill it in.");
     }
-    instance = drizzle(neon(process.env.DATABASE_URL), { schema });
+    // no-store: Next 14 patches fetch and would otherwise cache Neon's HTTP queries, serving stale rows.
+    instance = drizzle(neon(process.env.DATABASE_URL, { fetchOptions: { cache: "no-store" } }), { schema });
   }
   return instance;
 }
