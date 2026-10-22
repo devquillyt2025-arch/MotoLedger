@@ -27,7 +27,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <AddEntryProvider meta={meta}>
           <div className="lg:flex">
             <Sidebar alerts={alerts} odometer={meta.currentOdometer} />
-            <main className="min-w-0 flex-1 px-4 pb-28 pt-5 lg:px-10 lg:pb-10 lg:pt-8">
+            <main className="min-w-0 flex-1 px-4 pb-28 lg:px-10 lg:pb-10">
               <div className="mx-auto max-w-[1600px]">{children}</div>
             </main>
           </div>

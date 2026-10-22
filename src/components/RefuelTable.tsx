@@ -18,7 +18,7 @@ export default function RefuelTable({ refuels }: { refuels: EntryRow[] }) {
       <div className="overflow-x-auto">
         <table className="w-full min-w-[640px] text-sm">
           <thead className="bg-zinc-900 text-left">
-            <tr className="label">
+            <tr className="label whitespace-nowrap">
               <th className="px-3 py-2.5">Refuel #</th>
               <th className="px-3 py-2.5">Date</th>
               <th className="px-3 py-2.5 text-right">Amount (₹)</th>

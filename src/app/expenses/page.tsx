@@ -29,7 +29,7 @@ export default async function ExpensesPage() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[680px] text-sm">
               <thead className="bg-zinc-900 text-left">
-                <tr className="label">
+                <tr className="label whitespace-nowrap">
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3">Category</th>
