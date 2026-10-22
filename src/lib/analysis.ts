@@ -32,7 +32,8 @@ export function analyse(entries: EntryRow[], today = todayIST()) {
   const months: MonthRow[] = [];
   if (entries.length) {
     let [y, m] = entries[0].date.split("-").map(Number);
-    const [ty, tm] = today.split("-").map(Number);
+    const lastDate = entries.reduce((m, e) => (e.date > m ? e.date : m), today);
+    const [ty, tm] = lastDate.split("-").map(Number);
     while (y < ty || (y === ty && m <= tm)) {
       const key = `${y}-${String(m).padStart(2, "0")}`;
       const inMonth = entries.filter((e) => e.date.startsWith(key));

@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, X } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 /** Centered dialog on desktop, bottom sheet on phones. Closes on backdrop tap or Escape. */
 export function Modal({
@@ -15,8 +15,15 @@ export function Modal({
   children: React.ReactNode;
   z?: string;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    // Only the topmost dialog answers Escape, so a confirm over an edit sheet closes just the confirm.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      const dialogs = document.querySelectorAll('[role="dialog"]');
+      if (dialogs[dialogs.length - 1] === ref.current) onClose();
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
@@ -24,6 +31,7 @@ export function Modal({
   return (
     <div className={`fixed inset-0 ${z} flex items-end justify-center bg-black/70 sm:items-center`} onClick={onClose}>
       <div
+        ref={ref}
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}

@@ -8,6 +8,7 @@ import type { EditableEntry, EntryMeta } from "@/lib/data";
 import { CATEGORY_SUGGESTIONS, FUEL_PRICE_PER_LITRE, TANK_LITRES } from "@/lib/constants";
 import { todayIST } from "@/lib/format";
 import { sendJson } from "@/lib/client";
+import { useProfiles } from "./Profiles";
 import DeleteEntryDialog from "./DeleteEntryDialog";
 
 const TYPES: { value: EntryType; label: string; icon: string }[] = [
@@ -37,6 +38,8 @@ export function AddEntryProvider({ meta, children }: { meta: EntryMeta; children
   const [type, setType] = useState<EntryType>("refuel");
   const [category, setCategory] = useState(CATEGORY_SUGGESTIONS.refuel[0]);
   const [amount, setAmount] = useState("");
+  // Tank size is only known for the Dominar 400 (13 L); other bikes get the litres estimate without the warning.
+  const tankLitres = /dominar/i.test(useProfiles().current.bike) ? TANK_LITRES : null;
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -152,9 +155,9 @@ export function AddEntryProvider({ meta, children }: { meta: EntryMeta; children
                 />
               </label>
               {type === "refuel" && litres > 0 && (
-                <p className={`col-span-2 -mt-1 text-xs ${litres > TANK_LITRES ? "text-amber-300" : "text-zinc-400"}`}>
+                <p className={`col-span-2 -mt-1 text-xs ${tankLitres && litres > tankLitres ? "text-amber-300" : "text-zinc-400"}`}>
                   ≈ {litres.toFixed(1)} L at ₹{FUEL_PRICE_PER_LITRE}/L
-                  {litres > TANK_LITRES && ` — more than the ${TANK_LITRES} L tank, check the amount`}
+                  {tankLitres && litres > tankLitres && ` — more than the ${tankLitres} L tank, check the amount`}
                 </p>
               )}
               <label className="block">
