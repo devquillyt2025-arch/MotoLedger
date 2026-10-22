@@ -7,7 +7,7 @@ import type { Profile } from "@/db/schema";
 import { sendJson } from "@/lib/client";
 import { ConfirmDialog, Modal } from "./Modal";
 
-type P = Pick<Profile, "id" | "name" | "bike">;
+type P = Pick<Profile, "id" | "name" | "bike"> & { specs?: Profile["specs"] };
 type Ctx = { current: P; profiles: P[]; open: () => void };
 const ProfileContext = createContext<Ctx | null>(null);
 

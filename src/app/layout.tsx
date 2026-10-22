@@ -34,7 +34,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     getCurrentProfile(),
     listProfiles(),
   ]);
-  const pick = (p: typeof profile) => ({ id: p.id, name: p.name, bike: p.bike });
+  const pick = (p: typeof profile) => ({ id: p.id, name: p.name, bike: p.bike, specs: p.specs });
   const alerts = reminders.filter((r) => r.status !== "ok").length;
 
   return (

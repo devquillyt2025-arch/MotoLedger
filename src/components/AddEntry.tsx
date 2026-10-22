@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { EntryType } from "@/db/schema";
 import type { EditableEntry, EntryMeta } from "@/lib/data";
-import { CATEGORY_SUGGESTIONS, FUEL_PRICE_PER_LITRE, TANK_LITRES } from "@/lib/constants";
+import { tankLitresFor } from "@/lib/bike-specs";
+import { CATEGORY_SUGGESTIONS, FUEL_PRICE_PER_LITRE } from "@/lib/constants";
 import { todayIST } from "@/lib/format";
 import { sendJson } from "@/lib/client";
 import { useProfiles } from "./Profiles";
@@ -38,8 +39,9 @@ export function AddEntryProvider({ meta, children }: { meta: EntryMeta; children
   const [type, setType] = useState<EntryType>("refuel");
   const [category, setCategory] = useState(CATEGORY_SUGGESTIONS.refuel[0]);
   const [amount, setAmount] = useState("");
-  // Tank size is only known for the Dominar 400 (13 L); other bikes get the litres estimate without the warning.
-  const tankLitres = /dominar/i.test(useProfiles().current.bike) ? TANK_LITRES : null;
+  // Warn above the bike's tank size when we know it (rider-entered, or the Dominar's 13 L).
+  const { current } = useProfiles();
+  const tankLitres = tankLitresFor(current.bike, current.specs);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);

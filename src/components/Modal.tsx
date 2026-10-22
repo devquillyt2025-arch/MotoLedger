@@ -35,7 +35,7 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        className="card max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-b-none border-zinc-700 bg-zinc-900 p-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] sm:rounded-2xl sm:pb-5"
+        className="card max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-b-none border-zinc-700 bg-zinc-900 p-5 text-left pb-[calc(env(safe-area-inset-bottom)+1.25rem)] sm:rounded-2xl sm:pb-5"
       >
         <div className="mb-4 flex items-center justify-between gap-3">
           <h2 className="text-lg font-bold">{title}</h2>

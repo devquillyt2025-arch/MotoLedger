@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { sendJson } from "@/lib/client";
 import type { ReminderView } from "@/lib/data";
-import { REMINDER_HINTS } from "@/lib/constants";
 import { num, shortDate, todayIST } from "@/lib/format";
 import { ConfirmDialog, Modal } from "./Modal";
 import { OdometerButton } from "./Odometer";
@@ -15,9 +14,11 @@ type Intervals = { intervalKm: string; intervalDays: string };
 export default function ReminderCard({
   reminder: r,
   currentOdometer,
+  hint,
 }: {
   reminder: ReminderView;
   currentOdometer: number | null;
+  hint?: string | null;
 }) {
   const router = useRouter();
   const s = STATUS_STYLES[r.status];
@@ -87,7 +88,7 @@ export default function ReminderCard({
             <span className={`text-xs font-semibold ${s.text}`}>{s.label}</span>
           </div>
           <p className="mt-0.5 text-xs text-zinc-500">Every {every || "— (no interval set)"}</p>
-          <p className="mt-1.5 text-xs text-zinc-400">{REMINDER_HINTS[r.type]}</p>
+          {hint && <p className="mt-1.5 text-xs text-zinc-400">{hint}</p>}
         </div>
         <p className={`shrink-0 whitespace-nowrap text-right text-sm font-semibold ${s.text}`}>
           {remainingParts(r).map((p) => (

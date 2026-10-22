@@ -1,4 +1,4 @@
-import { date, index, integer, numeric, pgEnum, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { date, index, integer, jsonb, numeric, pgEnum, pgTable, serial, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const entryType = pgEnum("entry_type", ["refuel", "service", "accessory"]);
 export const reminderType = pgEnum("reminder_type", ["chain_lube", "service", "accessory_charge", "oil_change", "tyre_pressure", "coolant_change"]);
@@ -8,8 +8,12 @@ export const profiles = pgTable("profiles", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   bike: text("bike").notNull(),
+  /** Rider-entered bike details for Bike Info (null = none yet; Dominar profiles use the built-in manual). */
+  specs: jsonb("specs").$type<BikeSpecs>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export type BikeSpecs = Partial<Record<string, string>> & { tankLitres?: string };
 
 const profileId = () =>
   integer("profile_id")
