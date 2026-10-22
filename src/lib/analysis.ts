@@ -1,4 +1,3 @@
-import { FUEL_PRICE_PER_LITRE } from "./constants";
 import type { EntryRow } from "./data";
 import { todayIST } from "./format";
 
@@ -20,7 +19,7 @@ export type MonthRow = {
 export type RefillPoint = { seq: number; date: string; amount: number; litres: number; gapDays: number | null };
 
 /** Everything the Analysis page shows, derived from the entry list in one pass. */
-export function analyse(entries: EntryRow[], today = todayIST()) {
+export function analyse(entries: EntryRow[], fuelPrice: number, today = todayIST()) {
   const refuels = entries.filter((e) => e.type === "refuel");
   const sum = (type: string) => entries.filter((e) => e.type === type).reduce((s, e) => s + e.amount, 0);
   const fuel = sum("refuel");
@@ -58,7 +57,7 @@ export function analyse(entries: EntryRow[], today = todayIST()) {
     seq: r.seq,
     date: r.date,
     amount: r.amount,
-    litres: r.amount / FUEL_PRICE_PER_LITRE,
+    litres: r.amount / fuelPrice,
     gapDays: i > 0 ? daysBetween(refuels[i - 1].date, r.date) : null,
   }));
   const gaps = refills.flatMap((r) => (r.gapDays != null ? [r.gapDays] : []));
@@ -92,7 +91,8 @@ export function analyse(entries: EntryRow[], today = todayIST()) {
     daysSinceLastRefill: refuels.length ? daysBetween(refuels[refuels.length - 1].date, today) : null,
     fuelPerMonth: fuelPerDay * 30.44,
     fuelPerYear: fuelPerDay * 365,
-    litresPerWeek: (fuelPerDay * 7) / FUEL_PRICE_PER_LITRE,
+    litresPerWeek: (fuelPerDay * 7) / fuelPrice,
+    fuelPrice,
     modeAmount,
     modeCount,
     thisMonth: thisMonth ? { label: thisMonth.long, fuel: thisMonth.fuel } : null,

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { cache } from "react";
 import { db } from "@/db";
 import { profiles } from "@/db/schema";
+import { FUEL_PRICE_PER_LITRE } from "./constants";
 
 export const PROFILE_COOKIE = "ml_profile";
 export const MAX_NAME = 40;
@@ -22,6 +23,12 @@ export const getCurrentProfile = cache(async () => {
   }
   const wanted = Number(cookies().get(PROFILE_COOKIE)?.value);
   return all.find((p) => p.id === wanted) ?? all[0];
+});
+
+/** Petrol price (₹/L) the active profile uses for litre estimates. */
+export const getFuelPrice = cache(async () => {
+  const p = await getCurrentProfile();
+  return p.fuelPrice != null ? Number(p.fuelPrice) : FUEL_PRICE_PER_LITRE;
 });
 
 /** Shorthand for queries: the current profile's id. */

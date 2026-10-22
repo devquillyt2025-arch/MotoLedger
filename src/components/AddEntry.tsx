@@ -42,6 +42,7 @@ export function AddEntryProvider({ meta, children }: { meta: EntryMeta; children
   // Warn above the bike's tank size when we know it (rider-entered, or the Dominar's 13 L).
   const { current } = useProfiles();
   const tankLitres = tankLitresFor(current.bike, current.specs);
+  const fuelPrice = current.fuelPrice ?? FUEL_PRICE_PER_LITRE;
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -98,7 +99,7 @@ export function AddEntryProvider({ meta, children }: { meta: EntryMeta; children
     router.refresh();
   }
 
-  const litres = Number(amount) / FUEL_PRICE_PER_LITRE || 0;
+  const litres = Number(amount) / fuelPrice || 0;
   const label = TYPES.find((t) => t.value === type)!.label;
   const seq = editing && editing.type === type ? editing.seq : meta.nextSeq[type];
 
@@ -158,7 +159,7 @@ export function AddEntryProvider({ meta, children }: { meta: EntryMeta; children
               </label>
               {type === "refuel" && litres > 0 && (
                 <p className={`col-span-2 -mt-1 text-xs ${tankLitres && litres > tankLitres ? "text-amber-300" : "text-zinc-400"}`}>
-                  ≈ {litres.toFixed(1)} L at ₹{FUEL_PRICE_PER_LITRE}/L
+                  ≈ {litres.toFixed(1)} L at ₹{fuelPrice}/L
                   {tankLitres && litres > tankLitres && ` — more than the ${tankLitres} L tank, check the amount`}
                 </p>
               )}

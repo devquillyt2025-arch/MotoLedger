@@ -35,7 +35,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     getCurrentProfile(),
     listProfiles(),
   ]);
-  const pick = (p: typeof profile) => ({ id: p.id, name: p.name, bike: p.bike, specs: p.specs });
+  const pick = (p: typeof profile) => ({
+    id: p.id,
+    name: p.name,
+    bike: p.bike,
+    specs: p.specs,
+    fuelPrice: p.fuelPrice != null ? Number(p.fuelPrice) : null,
+  });
   const alerts =
     reminders.filter((r) => r.status !== "ok").length +
     documentExpiries(profile.ownership).filter((d) => d.status !== "ok").length;

@@ -12,6 +12,8 @@ export const profiles = pgTable("profiles", {
   specs: jsonb("specs").$type<BikeSpecs>(),
   /** Purchase, RTO and insurance details for Bike Info (null = none yet). */
   ownership: jsonb("ownership").$type<Ownership>(),
+  /** Petrol price (₹/L) used to estimate litres for this profile; null = app default. */
+  fuelPrice: numeric("fuel_price", { precision: 6, scale: 2 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

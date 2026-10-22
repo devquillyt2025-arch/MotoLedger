@@ -1,11 +1,10 @@
 import { editable, type EntryRow as EntryData } from "@/lib/data";
-import { FUEL_PRICE_PER_LITRE } from "@/lib/constants";
 import { rupees, shortDate } from "@/lib/format";
 import EntryListItem from "./EntryListItem";
 import EntryRow from "./EntryRow";
 
 /** Refuel log, newest first. Running totals come from the server (oldest-first window sum). */
-export default function RefuelTable({ refuels }: { refuels: EntryData[] }) {
+export default function RefuelTable({ refuels, fuelPrice }: { refuels: EntryData[]; fuelPrice: number }) {
   if (!refuels.length) {
     return (
       <div className="card p-8 text-center text-sm text-zinc-500">
@@ -27,7 +26,7 @@ export default function RefuelTable({ refuels }: { refuels: EntryData[] }) {
           title={shortDate(r.date)}
           subtitle={[r.notes ?? r.category, r.odometer != null ? `${r.odometer.toLocaleString("en-IN")} km` : null].filter(Boolean).join(" · ")}
           amount={rupees(r.amount)}
-          meta={`≈ ${(r.amount / FUEL_PRICE_PER_LITRE).toFixed(1)} L · Σ ${rupees(r.runningTotal)}`}
+          meta={`≈ ${(r.amount / fuelPrice).toFixed(1)} L · Σ ${rupees(r.runningTotal)}`}
         />
       ))}
     </ul>
@@ -54,7 +53,7 @@ export default function RefuelTable({ refuels }: { refuels: EntryData[] }) {
                 <td className="whitespace-nowrap px-3 py-2.5">{shortDate(r.date)}</td>
                 <td className="px-3 py-2.5 text-right tabular-nums">
                   <span className="font-semibold">{rupees(r.amount)}</span>
-                  <span className="block text-[11px] text-zinc-500">≈ {(r.amount / FUEL_PRICE_PER_LITRE).toFixed(1)} L</span>
+                  <span className="block text-[11px] text-zinc-500">≈ {(r.amount / fuelPrice).toFixed(1)} L</span>
                 </td>
                 <td className="px-3 py-2.5 text-right tabular-nums text-emerald-400">{rupees(r.runningTotal)}</td>
                 <td className="px-3 py-2.5">

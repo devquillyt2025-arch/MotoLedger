@@ -2,9 +2,9 @@ import { and, asc, desc, eq, getTableColumns, isNotNull, max, sql } from "drizzl
 import { cache } from "react";
 import { db } from "@/db";
 import { entries, entryType, odometerLogs, reminders, type EntryType, type Reminder } from "@/db/schema";
-import { DEFAULT_REMINDERS, FUEL_PRICE_PER_LITRE, WARN_DAYS, WARN_KM } from "./constants";
+import { DEFAULT_REMINDERS, WARN_DAYS, WARN_KM } from "./constants";
 import { isIsoDate, todayIST } from "./format";
-import { currentProfileId } from "./profile";
+import { currentProfileId, getFuelPrice } from "./profile";
 
 // Limits that keep bad input from reaching Postgres as a 500 (numeric(10,2) / integer overflow).
 const MAX_AMOUNT = 10_000_000;
@@ -128,7 +128,7 @@ const refuelOnly = sql`${entries.type} = 'refuel'`;
 
 export const getSummary = cache(async () => {
   const mine = eq(entries.profileId, await currentProfileId());
-  const [[agg], [latest], refuels, currentOdometer] = await Promise.all([
+  const [[agg], [latest], refuels, currentOdometer, fuelPrice] = await Promise.all([
     db
       .select({
         fuel: sql<number>`coalesce(sum(${entries.amount}) filter (where ${refuelOnly}), 0)`.mapWith(Number),
@@ -154,9 +154,11 @@ export const getSummary = cache(async () => {
       .where(and(mine, refuelOnly))
       .orderBy(asc(entries.date), asc(entries.id)),
     getCurrentOdometer(),
+    getFuelPrice(),
   ]);
 
   return {
+    fuelPrice,
     totalFuelSpend: agg.fuel,
     totalBikeSpend: agg.fuel + agg.service + agg.accessory,
     serviceSpend: agg.service,
@@ -166,9 +168,9 @@ export const getSummary = cache(async () => {
     lowestRefill: agg.refuels ? agg.lowestRefill : null,
     highestRefill: agg.refuels ? agg.highestRefill : null,
     latestRefill: latest ?? null,
-    estFuelLitres: agg.fuel / FUEL_PRICE_PER_LITRE,
+    estFuelLitres: agg.fuel / fuelPrice,
     totalEntries: agg.totalEntries,
-    mileageKmpl: mileage(refuels),
+    mileageKmpl: mileage(refuels, fuelPrice),
     currentOdometer,
   };
 });
@@ -180,12 +182,12 @@ export type Summary = Awaited<ReturnType<typeof getSummary>>;
  * ALL fuel bought from that first reading up to (not including) the last one — refills without a reading
  * in between still count, and the last fill hasn't been ridden yet.
  */
-function mileage(refuels: { odometer: number | null; amount: number }[]) {
+function mileage(refuels: { odometer: number | null; amount: number }[], fuelPrice: number) {
   const first = refuels.findIndex((r) => r.odometer != null);
   const last = refuels.findLastIndex((r) => r.odometer != null);
   if (first < 0 || last <= first) return null;
   const distance = refuels[last].odometer! - refuels[first].odometer!;
-  const litres = refuels.slice(first, last).reduce((s, r) => s + r.amount, 0) / FUEL_PRICE_PER_LITRE;
+  const litres = refuels.slice(first, last).reduce((s, r) => s + r.amount, 0) / fuelPrice;
   return distance > 0 && litres > 0 ? distance / litres : null;
 }
 

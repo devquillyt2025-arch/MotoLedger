@@ -1,6 +1,7 @@
 import type { EntryType, Reminder } from "@/db/schema";
 
-export const FUEL_PRICE_PER_LITRE = 102;
+/** Default petrol price (₹/L) for profiles that haven't set their own. */
+export const FUEL_PRICE_PER_LITRE = 110.1;
 
 /** Dominar 400 tank: 13 L with no reserve; the manual says never run below 3 L (fuel pump). */
 export const TANK_LITRES = 13;

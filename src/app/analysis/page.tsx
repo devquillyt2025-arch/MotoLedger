@@ -4,8 +4,8 @@ import PageHeader from "@/components/PageHeader";
 import StatCard from "@/components/StatCard";
 import { analyse } from "@/lib/analysis";
 import { SERIES } from "@/lib/chart-colors";
-import { FUEL_PRICE_PER_LITRE } from "@/lib/constants";
 import { listEntries } from "@/lib/data";
+import { getFuelPrice } from "@/lib/profile";
 import { num, rupees, shortDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +21,8 @@ function ExportButton({ className = "btn-ghost" }: { className?: string }) {
 }
 
 export default async function AnalysisPage() {
-  const a = analyse(await listEntries());
+  const [entries, fuelPrice] = await Promise.all([listEntries(), getFuelPrice()]);
+  const a = analyse(entries, fuelPrice);
 
   if (!a.hasData) {
     return (
@@ -155,7 +156,7 @@ export default async function AnalysisPage() {
               ["Shortest gap", a.minGapDays != null ? plural(a.minGapDays, "day") : "—"],
               ["Longest gap", a.maxGapDays != null ? plural(a.maxGapDays, "day") : "—"],
               ["Average gap", a.avgGapDays != null ? `${num(a.avgGapDays, 1)} days` : "—"],
-              ["Fuel bought", `≈ ${num(a.totals.fuel / FUEL_PRICE_PER_LITRE, 1)} L`],
+              ["Fuel bought", `≈ ${num(a.totals.fuel / a.fuelPrice, 1)} L`],
               ["Service share", `${num((a.split[1].share ?? 0) * 100, 1)}% of spend`],
             ].map(([k, v]) => (
               <div key={k} className="flex items-baseline justify-between gap-3 py-2.5">

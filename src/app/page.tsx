@@ -1,13 +1,13 @@
 import { Gauge } from "lucide-react";
 import Link from "next/link";
 import { AddEntryButton } from "@/components/AddEntry";
+import FuelPriceButton from "@/components/FuelPrice";
 import { OdometerButton } from "@/components/Odometer";
 import PageHeader from "@/components/PageHeader";
 import RefuelTable from "@/components/RefuelTable";
 import ReminderBanner from "@/components/ReminderBanner";
 import StatCard from "@/components/StatCard";
 import { getReminders, getSummary, listEntries } from "@/lib/data";
-import { FUEL_PRICE_PER_LITRE } from "@/lib/constants";
 import { num, rupees, shortDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +27,7 @@ export default async function Dashboard() {
       summary.latestRefill ? rupees(summary.latestRefill.amount) : dash,
       summary.latestRefill ? shortDate(summary.latestRefill.date) : undefined,
     ],
-    ["Est. Fuel", `${num(summary.estFuelLitres, 1)} L`, `@ ₹${FUEL_PRICE_PER_LITRE}/L`],
+    ["Est. Fuel", `${num(summary.estFuelLitres, 1)} L`],
     ["Mileage", summary.mileageKmpl ? `${num(summary.mileageKmpl, 1)} km/L` : dash, summary.mileageKmpl ? undefined : "needs 2+ odometer readings"],
     ["Accessories", rupees(summary.accessorySpend)],
     ["Total Entries", num(summary.totalEntries)],
@@ -69,7 +69,7 @@ export default async function Dashboard() {
               </Link>
             )}
           </div>
-          <RefuelTable refuels={refuels.slice(-RECENT)} />
+          <RefuelTable refuels={refuels.slice(-RECENT)} fuelPrice={summary.fuelPrice} />
         </section>
 
         <aside className="space-y-4">
@@ -87,6 +87,9 @@ export default async function Dashboard() {
                 </div>
               ))}
             </dl>
+            <div className="border-t border-zinc-800">
+              <FuelPriceButton price={summary.fuelPrice} />
+            </div>
           </section>
         </aside>
       </div>

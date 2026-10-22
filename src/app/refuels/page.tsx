@@ -1,6 +1,7 @@
 import { AddEntryButton } from "@/components/AddEntry";
 import PageHeader from "@/components/PageHeader";
 import RefuelTable from "@/components/RefuelTable";
+import FuelPriceButton from "@/components/FuelPrice";
 import StatCard from "@/components/StatCard";
 import { getSummary, listEntries } from "@/lib/data";
 import { num, rupees } from "@/lib/format";
@@ -21,7 +22,10 @@ export default async function RefuelsPage() {
         <StatCard label="Avg per Refill" value={rupees(avg)} />
         <StatCard label="Est. Fuel" value={`${num(summary.estFuelLitres, 1)} L`} />
       </section>
-      <RefuelTable refuels={refuels} />
+      <div className="card mb-4 px-4">
+        <FuelPriceButton price={summary.fuelPrice} />
+      </div>
+      <RefuelTable refuels={refuels} fuelPrice={summary.fuelPrice} />
     </>
   );
 }

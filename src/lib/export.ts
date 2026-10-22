@@ -1,9 +1,8 @@
 import ExcelJS from "exceljs";
 import { analyse } from "./analysis";
-import { FUEL_PRICE_PER_LITRE } from "./constants";
 import { getReminders, listEntries, listOdometerLogs } from "./data";
 import { todayIST } from "./format";
-import { getCurrentProfile } from "./profile";
+import { getCurrentProfile, getFuelPrice } from "./profile";
 import { documentExpiries, OWNERSHIP_GROUPS } from "./ownership";
 
 // Palette matches the app: zinc ink, emerald accent.
@@ -99,13 +98,14 @@ function table(
 }
 
 export async function buildWorkbook() {
-  const [entries, { reminders, currentOdometer }, odometer, profile] = await Promise.all([
+  const [entries, { reminders, currentOdometer }, odometer, profile, fuelPrice] = await Promise.all([
     listEntries(),
     getReminders(),
     listOdometerLogs(10_000),
     getCurrentProfile(),
+    getFuelPrice(),
   ]);
-  const a = analyse(entries);
+  const a = analyse(entries, fuelPrice);
   const today = todayIST();
 
   const wb = new ExcelJS.Workbook();
@@ -154,13 +154,13 @@ export async function buildWorkbook() {
     ["Refuels", a.refills.length],
     ["Average refill", a.avgRefill, RUPEE],
     ["Usual refill", a.modeAmount, RUPEE],
-    ["Est. fuel bought", Number((a.totals.fuel / FUEL_PRICE_PER_LITRE).toFixed(1)), '0.0" L"'],
+    ["Est. fuel bought", Number((a.totals.fuel / fuelPrice).toFixed(1)), '0.0" L"'],
     ["Average gap", a.avgGapDays != null ? Number(a.avgGapDays.toFixed(1)) : null, '0.0" days"'],
     ["Days since last refill", a.daysSinceLastRefill, '0" days"'],
   ]);
   block(12, 1, "Bike", [
     ["Current odometer", currentOdometer, KM],
-    ["Fuel price used", FUEL_PRICE_PER_LITRE, '"₹"0"/L"'],
+    ["Fuel price used", fuelPrice, '"₹"0.00"/L"'],
     ["Entries logged", entries.length],
   ]);
 
@@ -193,7 +193,7 @@ export async function buildWorkbook() {
     wb,
     "Refuels",
     "Refuel Log",
-    `${refuels.length} refills · litres estimated at ₹${FUEL_PRICE_PER_LITRE}/L · newest first`,
+    `${refuels.length} refills · litres estimated at ₹${fuelPrice}/L · newest first`,
     [
       { header: "#", key: "seq", width: 6, align: "center" },
       { header: "Date", key: "date", width: 14, fmt: DATE },
@@ -208,7 +208,7 @@ export async function buildWorkbook() {
       seq: r.seq,
       date: xlDate(r.date),
       amount: r.amount,
-      litres: Number((r.amount / FUEL_PRICE_PER_LITRE).toFixed(2)),
+      litres: Number((r.amount / fuelPrice).toFixed(2)),
       runningTotal: r.runningTotal,
       odometer: r.odometer,
       category: r.category,
