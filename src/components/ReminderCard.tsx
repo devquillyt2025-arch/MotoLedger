@@ -6,7 +6,10 @@ import { sendJson } from "@/lib/client";
 import type { ReminderView } from "@/lib/data";
 import { REMINDER_HINTS } from "@/lib/constants";
 import { num, shortDate, todayIST } from "@/lib/format";
+import { ConfirmDialog, Modal } from "./Modal";
 import { remainingParts, STATUS_STYLES } from "./ReminderBadge";
+
+type Intervals = { intervalKm: string; intervalDays: string };
 
 export default function ReminderCard({
   reminder: r,
@@ -18,8 +21,21 @@ export default function ReminderCard({
   const router = useRouter();
   const s = STATUS_STYLES[r.status];
   const [mode, setMode] = useState<"view" | "done" | "edit">("view");
+  // Interval edit that clears an existing interval — held here until the user confirms the removal.
+  const [pendingClear, setPendingClear] = useState<Intervals | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function open(m: "done" | "edit") {
+    setError(null);
+    setMode(m);
+  }
+
+  function close() {
+    if (busy) return;
+    setMode("view");
+    setPendingClear(null);
+  }
 
   async function send(url: string, body: object) {
     setBusy(true);
@@ -27,6 +43,7 @@ export default function ReminderCard({
     const err = await sendJson(url, "PATCH", body);
     setBusy(false);
     if (err) return setError(err);
+    setPendingClear(null);
     setMode("view");
     router.refresh();
   }
@@ -41,12 +58,23 @@ export default function ReminderCard({
   function onEdit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    send(`/api/reminders/${r.id}`, { intervalKm: f.get("intervalKm"), intervalDays: f.get("intervalDays") });
+    const next: Intervals = { intervalKm: String(f.get("intervalKm") ?? ""), intervalDays: String(f.get("intervalDays") ?? "") };
+    const clearsKm = r.intervalKm != null && next.intervalKm === "";
+    const clearsDays = r.intervalDays != null && next.intervalDays === "";
+    if (clearsKm || clearsDays) return setPendingClear(next);
+    send(`/api/reminders/${r.id}`, next);
   }
 
   const every = [r.intervalKm != null && `${num(r.intervalKm)} km`, r.intervalDays != null && `${r.intervalDays} days`]
     .filter(Boolean)
     .join(" or ");
+
+  const removed = pendingClear
+    ? [
+        r.intervalKm != null && pendingClear.intervalKm === "" && `every ${num(r.intervalKm)} km`,
+        r.intervalDays != null && pendingClear.intervalDays === "" && `every ${r.intervalDays} days`,
+      ].filter(Boolean)
+    : [];
 
   return (
     <section className={`rounded-2xl border p-4 ${s.ring}`}>
@@ -86,56 +114,112 @@ export default function ReminderCard({
         </div>
       </dl>
 
-      {mode === "view" && (
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <button className="btn-primary" onClick={() => setMode("done")}>
-            ✓ Mark Done
-          </button>
-          <button className="btn-ghost" onClick={() => setMode("edit")}>
-            Edit interval
-          </button>
-        </div>
-      )}
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <button className="btn-primary" onClick={() => open("done")}>
+          ✓ Mark Done
+        </button>
+        <button className="btn-ghost" onClick={() => open("edit")}>
+          Edit interval
+        </button>
+      </div>
 
       {mode === "done" && (
-        <form onSubmit={onMarkDone} className="mt-4 grid grid-cols-2 gap-2">
-          <label>
-            <span className="label">Date</span>
-            <input name="date" type="date" defaultValue={todayIST()} required className="input mt-1" />
-          </label>
-          <label>
-            <span className="label">Odometer</span>
-            <input name="odometer" type="number" inputMode="numeric" min="0" step="1" defaultValue={currentOdometer ?? ""} className="input mt-1" />
-          </label>
-          <button type="submit" disabled={busy} className="btn-primary">
-            {busy ? "Saving…" : "Confirm"}
-          </button>
-          <button type="button" className="btn-ghost" onClick={() => setMode("view")}>
-            Cancel
-          </button>
-        </form>
+        <Modal title={`Mark ${r.label} done`} onClose={close}>
+          <form onSubmit={onMarkDone} className="grid grid-cols-2 gap-3">
+            <label>
+              <span className="label">Date</span>
+              <input name="date" type="date" defaultValue={todayIST()} required className="input mt-1" />
+            </label>
+            <label>
+              <span className="label">Odometer (km)</span>
+              <input
+                name="odometer"
+                type="number"
+                inputMode="numeric"
+                min="0"
+                step="1"
+                defaultValue={currentOdometer ?? ""}
+                placeholder="optional"
+                className="input mt-1"
+              />
+            </label>
+            <p className="col-span-2 text-xs text-zinc-500">The next due date and km are counted from here.</p>
+            {error && <p className="col-span-2 text-sm text-red-400">{error}</p>}
+            <button type="button" className="btn-ghost" onClick={close}>
+              Cancel
+            </button>
+            <button type="submit" disabled={busy} className="btn-primary">
+              {busy ? "Saving…" : "Mark done"}
+            </button>
+          </form>
+        </Modal>
       )}
 
       {mode === "edit" && (
-        <form onSubmit={onEdit} className="mt-4 grid grid-cols-2 gap-2">
-          <label>
-            <span className="label">Every (km)</span>
-            <input name="intervalKm" type="number" inputMode="numeric" min="1" step="1" defaultValue={r.intervalKm ?? ""} placeholder="none" className="input mt-1" />
-          </label>
-          <label>
-            <span className="label">Every (days)</span>
-            <input name="intervalDays" type="number" inputMode="numeric" min="1" step="1" defaultValue={r.intervalDays ?? ""} placeholder="none" className="input mt-1" />
-          </label>
-          <button type="submit" disabled={busy} className="btn-primary">
-            {busy ? "Saving…" : "Save"}
-          </button>
-          <button type="button" className="btn-ghost" onClick={() => setMode("view")}>
-            Cancel
-          </button>
-        </form>
+        <Modal title={`Edit ${r.label} interval`} onClose={close}>
+          <form onSubmit={onEdit} className="grid grid-cols-2 gap-3">
+            <label>
+              <span className="label">Every (km)</span>
+              <input
+                name="intervalKm"
+                type="number"
+                inputMode="numeric"
+                min="1"
+                step="1"
+                defaultValue={r.intervalKm ?? ""}
+                placeholder="none"
+                className="input mt-1"
+              />
+            </label>
+            <label>
+              <span className="label">Every (days)</span>
+              <input
+                name="intervalDays"
+                type="number"
+                inputMode="numeric"
+                min="1"
+                step="1"
+                defaultValue={r.intervalDays ?? ""}
+                placeholder="none"
+                className="input mt-1"
+              />
+            </label>
+            <p className="col-span-2 text-xs text-zinc-500">
+              Due when either limit is reached. Leave one empty to remove it.
+            </p>
+            {error && !pendingClear && <p className="col-span-2 text-sm text-red-400">{error}</p>}
+            <button type="button" className="btn-ghost" onClick={close}>
+              Cancel
+            </button>
+            <button type="submit" disabled={busy} className="btn-primary">
+              {busy ? "Saving…" : "Save"}
+            </button>
+          </form>
+        </Modal>
       )}
 
-      {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+      {pendingClear && (
+        <ConfirmDialog
+          title="Remove interval?"
+          confirmLabel="Remove"
+          message={
+            <>
+              <p>
+                <span className="font-semibold text-zinc-100">{r.label}</span> will no longer remind you{" "}
+                {removed.join(" or ")}.
+              </p>
+              <p className="mt-2 text-zinc-400">You can add it back later with Edit interval.</p>
+            </>
+          }
+          busy={busy}
+          error={error}
+          onConfirm={() => send(`/api/reminders/${r.id}`, pendingClear)}
+          onCancel={() => {
+            setPendingClear(null);
+            setError(null);
+          }}
+        />
+      )}
     </section>
   );
 }
