@@ -1,4 +1,4 @@
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, FileSpreadsheet } from "lucide-react";
 import { ColumnChart, Legend, SplitBars, type Column } from "@/components/charts";
 import PageHeader from "@/components/PageHeader";
 import StatCard from "@/components/StatCard";
@@ -11,6 +11,14 @@ import { num, rupees, shortDate } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 const plural = (n: number, w: string) => `${num(n)} ${w}${n === 1 ? "" : "s"}`;
+
+function ExportButton({ className = "btn-ghost" }: { className?: string }) {
+  return (
+    <a href="/api/export" download className={className}>
+      <FileSpreadsheet className="h-4 w-4" /> Export to Excel
+    </a>
+  );
+}
 
 export default async function AnalysisPage() {
   const a = analyse(await listEntries());
@@ -46,7 +54,14 @@ export default async function AnalysisPage() {
 
   return (
     <>
-      <PageHeader title="Analysis" subtitle="Where your money goes and how often you fill up." />
+      <PageHeader
+        title="Analysis"
+        subtitle="Where your money goes and how often you fill up."
+        action={<ExportButton />}
+      />
+
+      {/* Phones: the header action is hidden, so the export lives at the top of the page. */}
+      <ExportButton className="btn-ghost mb-3 w-full lg:hidden" />
 
       <section className="grid grid-cols-2 gap-3 lg:gap-4 xl:grid-cols-4">
         <StatCard
