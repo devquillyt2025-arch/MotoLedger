@@ -9,23 +9,23 @@ export default function ReminderBanner({ reminders }: { reminders: ReminderView[
   const attention = sorted.filter((r) => r.status !== "ok").length;
 
   return (
-    <section className="card p-4">
+    <section className="card p-5">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="label">Maintenance</h2>
         <Link href="/reminders" className="text-xs font-medium text-emerald-400">
           {attention ? `${attention} need attention →` : "All good →"}
         </Link>
       </div>
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="space-y-2">
         {sorted.map((r) => {
           const s = STATUS_STYLES[r.status];
           return (
-            <Link key={r.id} href="/reminders" className={`rounded-xl border p-3 ${s.ring}`}>
-              <div className="flex items-center gap-2">
-                <span className={`h-2 w-2 rounded-full ${s.dot}`} />
+            <Link key={r.id} href="/reminders" className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 ${s.ring}`}>
+              <span className="flex items-center gap-2">
+                <span className={`h-2 w-2 shrink-0 rounded-full ${s.dot}`} />
                 <span className="text-sm font-semibold">{r.label}</span>
-              </div>
-              <p className={`mt-1 text-xs ${s.text}`}>{remainingParts(r).join(" · ")}</p>
+              </span>
+              <span className={`text-right text-xs ${s.text}`}>{remainingParts(r).join(" · ")}</span>
             </Link>
           );
         })}

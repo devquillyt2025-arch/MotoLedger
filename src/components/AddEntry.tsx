@@ -1,8 +1,10 @@
 "use client";
 
+import { Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { EntryType } from "@/db/schema";
+import type { EntryMeta } from "@/lib/data";
 import { CATEGORY_SUGGESTIONS } from "@/lib/constants";
 import { todayIST } from "@/lib/format";
 
@@ -12,13 +14,35 @@ const TYPES: { value: EntryType; label: string; icon: string }[] = [
   { value: "accessory", label: "Accessory", icon: "🪖" },
 ];
 
-export default function AddEntry({
-  nextSeq,
-  lastOdometer,
-}: {
-  nextSeq: Record<EntryType, number>;
-  lastOdometer: number | null;
-}) {
+const AddEntryContext = createContext<(type?: EntryType) => void>(() => {});
+
+/** Opens the shared Add Entry modal, optionally preset to a type. */
+export const useAddEntry = () => useContext(AddEntryContext);
+
+export function AddEntryButton({ type, className = "btn-primary" }: { type?: EntryType; className?: string }) {
+  const open = useAddEntry();
+  return (
+    <button onClick={() => open(type)} className={className}>
+      <Plus className="h-4 w-4" /> Add Entry
+    </button>
+  );
+}
+
+/** Floating button for phones; desktop uses the sidebar / page-header buttons. */
+export function AddEntryFab() {
+  const open = useAddEntry();
+  return (
+    <button
+      onClick={() => open()}
+      aria-label="Add entry"
+      className="btn-primary fixed bottom-5 right-4 z-30 rounded-full px-6 py-4 text-base shadow-lg shadow-emerald-500/20 lg:hidden"
+    >
+      <Plus className="h-5 w-5" /> Add
+    </button>
+  );
+}
+
+export function AddEntryProvider({ meta, children }: { meta: EntryMeta; children: React.ReactNode }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<EntryType>("refuel");
@@ -28,12 +52,22 @@ export default function AddEntry({
   const amountRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (open) amountRef.current?.focus();
+    if (!open) return;
+    amountRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
   function pickType(t: EntryType) {
     setType(t);
     setCategory(CATEGORY_SUGGESTIONS[t][0]);
+  }
+
+  function openModal(t: EntryType = "refuel") {
+    pickType(t);
+    setError(null);
+    setOpen(true);
   }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -52,21 +86,15 @@ export default function AddEntry({
       return;
     }
     setOpen(false);
-    pickType("refuel");
     router.refresh();
   }
 
   return (
-    <>
-      <button
-        onClick={() => setOpen(true)}
-        className="btn-primary fixed bottom-5 right-4 z-30 rounded-full px-6 py-4 text-base shadow-lg shadow-emerald-500/20 sm:right-[max(1rem,calc(50%-22rem))]"
-      >
-        + Add
-      </button>
+    <AddEntryContext.Provider value={openModal}>
+      {children}
 
       {open && (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/70 sm:items-center" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 sm:items-center" onClick={() => setOpen(false)}>
           <form
             onSubmit={onSubmit}
             onClick={(e) => e.stopPropagation()}
@@ -75,10 +103,10 @@ export default function AddEntry({
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-bold">
                 New {TYPES.find((t) => t.value === type)!.label}{" "}
-                <span className="text-zinc-500">#{nextSeq[type]}</span>
+                <span className="text-zinc-500">#{meta.nextSeq[type]}</span>
               </h2>
-              <button type="button" onClick={() => setOpen(false)} className="text-2xl leading-none text-zinc-500" aria-label="Close">
-                ×
+              <button type="button" onClick={() => setOpen(false)} className="text-zinc-500 hover:text-zinc-300" aria-label="Close">
+                <X className="h-5 w-5" />
               </button>
             </div>
 
@@ -115,7 +143,7 @@ export default function AddEntry({
                   min="0"
                   step="1"
                   className="input mt-1"
-                  placeholder={lastOdometer != null ? `> ${lastOdometer}` : "optional"}
+                  placeholder={meta.currentOdometer != null ? `> ${meta.currentOdometer}` : "optional"}
                 />
               </label>
               <div className="col-span-2">
@@ -150,6 +178,6 @@ export default function AddEntry({
           </form>
         </div>
       )}
-    </>
+    </AddEntryContext.Provider>
   );
 }

@@ -57,6 +57,22 @@ export async function createEntry(input: NewEntryInput) {
   return row;
 }
 
+/** Per-type counts (for the next #) and the current odometer — what the Add Entry modal needs. */
+export async function getEntryMeta() {
+  const [counts, currentOdometer] = await Promise.all([
+    db
+      .select({ type: entries.type, n: sql<number>`count(*)`.mapWith(Number) })
+      .from(entries)
+      .groupBy(entries.type),
+    getCurrentOdometer(),
+  ]);
+  const nextSeq = { refuel: 1, service: 1, accessory: 1 } satisfies Record<EntryType, number>;
+  for (const c of counts) nextSeq[c.type] = c.n + 1;
+  return { nextSeq, currentOdometer };
+}
+
+export type EntryMeta = Awaited<ReturnType<typeof getEntryMeta>>;
+
 // ---------- Summary ----------
 
 const refuelOnly = sql`${entries.type} = 'refuel'`;
