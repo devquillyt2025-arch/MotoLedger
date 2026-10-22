@@ -1,21 +1,24 @@
 import { BookOpen, Wrench } from "lucide-react";
 import Link from "next/link";
-import type { BikeSpecs } from "@/db/schema";
+import type { BikeSpecs, Ownership } from "@/db/schema";
 import { SPEC_GROUPS } from "@/lib/bike-specs";
 import type { EntryRow } from "@/lib/data";
 import { num, rupees, shortDate } from "@/lib/format";
 import BikeSpecsEditor from "./BikeSpecsEditor";
+import OwnershipCard from "./OwnershipCard";
 import PageHeader from "./PageHeader";
 
 /** Bike Info for a profile whose bike has no built-in manual: the rider's own details + this bike's history. */
 export default function CustomBikeInfo({
   bike,
   specs,
+  ownership,
   entries,
   odometer,
 }: {
   bike: string;
   specs: BikeSpecs | null;
+  ownership: Ownership | null;
   entries: EntryRow[];
   odometer: number | null;
 }) {
@@ -29,6 +32,8 @@ export default function CustomBikeInfo({
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="min-w-0 space-y-4">
+          <OwnershipCard ownership={ownership} spend={entries.reduce((s, e) => s + e.amount, 0)} />
+
           {filled.length === 0 ? (
             <section className="card flex flex-col items-center p-8 text-center">
               <span className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-500/15 text-emerald-400">

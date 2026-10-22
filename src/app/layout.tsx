@@ -5,6 +5,7 @@ import { OdometerProvider } from "@/components/Odometer";
 import { ProfileProvider } from "@/components/Profiles";
 import Sidebar from "@/components/Sidebar";
 import { getEntryMeta, getReminders, listOdometerLogs } from "@/lib/data";
+import { documentExpiries } from "@/lib/ownership";
 import { getCurrentProfile, listProfiles } from "@/lib/profile";
 import "./globals.css";
 
@@ -35,7 +36,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     listProfiles(),
   ]);
   const pick = (p: typeof profile) => ({ id: p.id, name: p.name, bike: p.bike, specs: p.specs });
-  const alerts = reminders.filter((r) => r.status !== "ok").length;
+  const alerts =
+    reminders.filter((r) => r.status !== "ok").length +
+    documentExpiries(profile.ownership).filter((d) => d.status !== "ok").length;
 
   return (
     <html lang="en-IN">

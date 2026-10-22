@@ -10,10 +10,13 @@ export const profiles = pgTable("profiles", {
   bike: text("bike").notNull(),
   /** Rider-entered bike details for Bike Info (null = none yet; Dominar profiles use the built-in manual). */
   specs: jsonb("specs").$type<BikeSpecs>(),
+  /** Purchase, RTO and insurance details for Bike Info (null = none yet). */
+  ownership: jsonb("ownership").$type<Ownership>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export type BikeSpecs = Partial<Record<string, string>> & { tankLitres?: string };
+export type Ownership = Partial<Record<string, string>>;
 
 const profileId = () =>
   integer("profile_id")

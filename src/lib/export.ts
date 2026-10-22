@@ -4,6 +4,7 @@ import { FUEL_PRICE_PER_LITRE } from "./constants";
 import { getReminders, listEntries, listOdometerLogs } from "./data";
 import { todayIST } from "./format";
 import { getCurrentProfile } from "./profile";
+import { documentExpiries, OWNERSHIP_GROUPS } from "./ownership";
 
 // Palette matches the app: zinc ink, emerald accent.
 const INK = "FF18181B";
@@ -162,6 +163,28 @@ export async function buildWorkbook() {
     ["Fuel price used", FUEL_PRICE_PER_LITRE, '"₹"0"/L"'],
     ["Entries logged", entries.length],
   ]);
+
+  // Purchase / RTO / insurance details, if the rider filled them in.
+  const own = profile.ownership;
+  const ownRows = OWNERSHIP_GROUPS.flatMap((g) =>
+    g.fields.flatMap((f) => {
+      const v = own?.[f.key];
+      if (!v) return [];
+      const value: ExcelJS.CellValue = f.kind === "money" ? Number(v) : f.kind === "date" ? xlDate(v) : v;
+      return [[`${g.group} · ${f.label}`, value, f.kind === "money" ? RUPEE : f.kind === "date" ? DATE : undefined] as [string, ExcelJS.CellValue, string?]];
+    }),
+  );
+  if (ownRows.length) {
+    block(17, 1, "Purchase, RTO & insurance", ownRows);
+    documentExpiries(own).forEach((d, i) => {
+      const r = 18 + ownRows.length + 1 + i;
+      ws.getCell(r, 1).value = `${d.label} expiry`;
+      const c = ws.getCell(r, 2);
+      c.value = d.daysLeft < 0 ? `Expired ${-d.daysLeft} days ago` : `${d.daysLeft} days left`;
+      c.alignment = { horizontal: "right" };
+      c.font = { bold: true, color: { argb: d.status === "expired" ? RED : d.status === "soon" ? AMBER : GREEN } };
+    });
+  }
   block(12, 4, "Spend split", a.split.map((s) => [s.label, s.share, "0.0%"] as [string, number, string]));
 
   // ---- Refuels ----

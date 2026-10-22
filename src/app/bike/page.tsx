@@ -1,5 +1,6 @@
 import { CheckCircle2, Circle, Phone } from "lucide-react";
 import CustomBikeInfo from "@/components/CustomBikeInfo";
+import OwnershipCard from "@/components/OwnershipCard";
 import PageHeader from "@/components/PageHeader";
 import {
   DAILY_CHECKS,
@@ -22,7 +23,15 @@ export default async function BikePage() {
   const [entries, odometer, profile] = await Promise.all([listEntries(), getCurrentOdometer(), getCurrentProfile()]);
   // The built-in owner's-manual page is Dominar 400 data; every other bike gets the rider's own details.
   if (!/dominar/i.test(profile.bike)) {
-    return <CustomBikeInfo bike={profile.bike} specs={profile.specs} entries={entries} odometer={odometer} />;
+    return (
+      <CustomBikeInfo
+        bike={profile.bike}
+        specs={profile.specs}
+        ownership={profile.ownership}
+        entries={entries}
+        odometer={odometer}
+      />
+    );
   }
   const services = entries.filter((e) => e.type === "service");
   const doneFree = new Map(
@@ -40,6 +49,8 @@ export default async function BikePage() {
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="min-w-0 space-y-4">
+          <OwnershipCard ownership={profile.ownership} spend={entries.reduce((s, e) => s + e.amount, 0)} />
+
           {/* Service plan */}
           <section className="card p-5">
             <h2 className="label mb-3">Service Plan</h2>
